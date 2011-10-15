@@ -1,7 +1,6 @@
 
 package TextPlayer;
 
-import com.nijiko.permissions.PermissionHandler;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -20,6 +19,7 @@ import org.bukkit.event.Event.Priority;
 import org.bukkit.event.Event.Type;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
+import ru.tehkode.permissions.PermissionManager;
 
 /**
  *
@@ -27,7 +27,7 @@ import org.bukkit.plugin.java.JavaPlugin;
  */
 public class TextPlayer extends JavaPlugin {
     protected static String perm;
-    protected static PermissionHandler permissions;
+    protected static PermissionManager permissions;
     protected static Server server;
     protected static PluginManager pm;
     protected static Encrypter encrypter = new Encrypter("SeVenTy*7");
@@ -40,6 +40,7 @@ public class TextPlayer extends JavaPlugin {
     @Override
     public void onEnable () {
         server = getServer();
+        pm = server.getPluginManager();
         checkFiles();
         loadSettings();
         SaveSystem.loadUsers();
@@ -47,29 +48,16 @@ public class TextPlayer extends JavaPlugin {
             System.err.println("[TextPlayer] Please create email account for email.properties");
         else
             Mailer.checkMail();
-        TextPlayerPlayerListener playerListener = new TextPlayerPlayerListener();
-        TextPlayerBlockListener blockListener = new TextPlayerBlockListener();
-        pm = server.getPluginManager();
-        pm.registerEvent(Event.Type.PLUGIN_ENABLE, new PluginListener(), Priority.Monitor, this);
-        pm.registerEvent(Type.PLAYER_COMMAND_PREPROCESS, playerListener, Priority.Normal, this);
-        pm.registerEvent(Type.PLAYER_CHAT, playerListener, Priority.Normal, this);
-        pm.registerEvent(Type.PLAYER_JOIN, playerListener, Priority.Normal, this);
-        pm.registerEvent(Type.PLAYER_QUIT, playerListener, Priority.Normal, this);
-        pm.registerEvent(Type.BLOCK_PLACE, blockListener, Priority.Normal, this);
-        pm.registerEvent(Type.BLOCK_IGNITE, blockListener, Priority.Normal, this);
+        registerEvents();
         System.out.println("TextPlayer "+this.getDescription().getVersion()+" is enabled!");
         LinkedList<User> users = SaveSystem.getUsers();
-        for (User user : users) {
+        for (User user : users)
             if (user.isWatchingUser("server"))
                 Mailer.sendMsg(null, user, "Server has just come online");
-        }
     }
     
     private void checkFiles() {
-        File file = new File("lib/Register.jar");
-        if (!file.exists() || file.length() < 43000)
-            moveFile("Register.jar");
-        file = new File("lib/mail.jar");
+        File file = new File("lib/mail.jar");
         if (!file.exists())
             moveFile("mail.jar");
         file = new File("plugins/TextPlayer/config.properties");
@@ -101,7 +89,7 @@ public class TextPlayer extends JavaPlugin {
             JarFile jar = new JarFile("plugins/TextPlayer.jar");
             ZipEntry entry = jar.getEntry(fileName);
             String destination = "plugins/TextPlayer/";
-            if (fileName.equals("mail.jar") || fileName.equals("Register.jar")) {
+            if (fileName.equals("mail.jar")) {
                 System.err.println("[TextPlayer] Moving Files... Please Reload Server");
                 destination = "lib/";
             }
@@ -140,7 +128,7 @@ public class TextPlayer extends JavaPlugin {
         Register.economy = loadValue("Economy");
         Register.cost = Integer.parseInt(loadValue("CostToText"));
         Register.costAdmin = Integer.parseInt(loadValue("CostToTextAnAdmin"));
-        perm = loadValue("Permissions").toLowerCase();
+        PluginListener.useOP = Boolean.parseBoolean(loadValue("UseOP"));
         p = new Properties();
         try {
             p.load(new FileInputStream("plugins/TextPlayer/email.properties"));
@@ -170,19 +158,33 @@ public class TextPlayer extends JavaPlugin {
         if (!p.containsKey(key)) {
             System.err.println("[TextPlayer] Missing value for "+key);
             System.err.println("[TextPlayer] Please regenerate the config.properties file");
-            System.err.println("[TextPlayer] If still getting this error regenerate the email.properties file");
+            System.err.println("[TextPlayer] If still getting this error, regenerate the email.properties file");
         }
         return p.getProperty(key);
+    }
+    
+    /**
+     * Registers events for the TextPlayer Plugin
+     *
+     */
+    private void registerEvents() {
+        TextPlayerPlayerListener playerListener = new TextPlayerPlayerListener();
+        TextPlayerBlockListener blockListener = new TextPlayerBlockListener();
+        pm.registerEvent(Event.Type.PLUGIN_ENABLE, new PluginListener(), Priority.Monitor, this);
+        pm.registerEvent(Type.PLAYER_COMMAND_PREPROCESS, playerListener, Priority.Normal, this);
+        pm.registerEvent(Type.PLAYER_CHAT, playerListener, Priority.Normal, this);
+        pm.registerEvent(Type.PLAYER_JOIN, playerListener, Priority.Normal, this);
+        pm.registerEvent(Type.PLAYER_QUIT, playerListener, Priority.Normal, this);
+        pm.registerEvent(Type.BLOCK_PLACE, blockListener, Priority.Normal, this);
+        pm.registerEvent(Type.BLOCK_IGNITE, blockListener, Priority.Normal, this);
     }
 
     public static boolean hasPermission(Player player, String type) {
         if (permissions != null)
             return permissions.has(player, "textplayer."+type);
-        else
-            if (type.equals("free"))
-                return false;
-            else
-                return true;
+        else if (type.equals("free"))
+            return false;
+        return true;
     }
     
     public static User getUser(String name) {

@@ -1,11 +1,10 @@
 
 package TextPlayer;
 
-import com.nijikokun.bukkit.Permissions.Permissions;
-import com.nijikokun.register.payment.Methods;
+import com.codisimus.textplayer.register.payment.Methods;
 import org.bukkit.event.server.PluginEnableEvent;
 import org.bukkit.event.server.ServerListener;
-import org.bukkit.plugin.Plugin;
+import ru.tehkode.permissions.bukkit.PermissionsEx;
 
 /**
  * Checks for plugins whenever one is enabled
@@ -13,32 +12,61 @@ import org.bukkit.plugin.Plugin;
  */
 public class PluginListener extends ServerListener {
     public PluginListener() { }
-    Methods methods = new Methods();
+    protected static Boolean useOP;
 
     @Override
     public void onPluginEnable(PluginEnableEvent event) {
-        if (!TextPlayer.perm.equals("op")) {
-            if (TextPlayer.permissions == null) {
-                Plugin permissions = TextPlayer.pm.getPlugin("Permissions");
-                if (permissions != null) {
-                    TextPlayer.permissions = ((Permissions)permissions).getHandler();
-                    System.out.println("[TextPlayer] Successfully linked with Permissions!");
-                }
-            }
+        linkPermissions();
+        linkEconomy();
+    }
+
+    /**
+     * Find and link a Permission plugin
+     *
+     */
+    private void linkPermissions() {
+        //Return if we have already have a permissions plugin
+        if (TextPlayer.permissions != null)
+            return;
+
+        //Return if PermissionsEx is not enabled
+        if (!TextPlayer.pm.isPluginEnabled("PermissionsEx"))
+            return;
+
+        //Return if OP permissions will be used
+        if (useOP)
+            return;
+
+        TextPlayer.permissions = PermissionsEx.getPermissionManager();
+        System.out.println("[TextPlayer] Successfully linked with PermissionsEx!");
+    }
+
+    /**
+     * Find and link an Economy plugin
+     *
+     */
+    private void linkEconomy() {
+        //Return if we already have an Economy plugin
+        if (Methods.hasMethod())
+            return;
+
+        //Return if no Economy is wanted
+        if (Register.economy.equalsIgnoreCase("none"))
+            return;
+
+        //Set preferred plugin if there is one
+        if (!Register.economy.equalsIgnoreCase("auto"))
+            Methods.setPreferred(Register.economy);
+
+        Methods.setMethod(TextPlayer.pm);
+
+        //Reset Methods if the preferred Economy was not found
+        if (!Methods.getMethod().getName().equalsIgnoreCase(Register.economy) && !Register.economy.equalsIgnoreCase("auto")) {
+            Methods.reset();
+            return;
         }
-        if (Register.economy == null)
-            System.err.println("[TextPlayer] Config file outdated, Please regenerate");
-        else if (!Register.economy.equalsIgnoreCase("none") && !methods.hasMethod()) {
-            try {
-                methods.setMethod(TextPlayer.pm.getPlugin(Register.economy));
-                if (methods.hasMethod()) {
-                    Register.econ = methods.getMethod();
-                    System.out.println("[TextPlayer] Successfully linked with "+
-                            Register.econ.getName()+" "+Register.econ.getVersion()+"!");
-                }
-            }
-            catch (Exception e) {
-            }
-        }
+
+        Register.econ = Methods.getMethod();
+        System.out.println("[TextPlayer] Successfully linked with "+Register.econ.getName()+" "+Register.econ.getVersion()+"!");
     }
 }

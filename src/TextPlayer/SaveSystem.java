@@ -90,22 +90,10 @@ public class SaveSystem {
     }
 
     protected static void addUser(User user) {
-        try {
-            users.add(user);
-            saveUsers();
-        }
-        catch (Exception e) {
-            e.printStackTrace();
-        }
+        users.add(user);
     }
 
     protected static void removeUser(User user){
-        try {
-            users.remove(user);
-            saveUsers();
-        }
-        catch (Exception e) {
-            e.printStackTrace();
-        }
+        users.remove(user);
     }
 }

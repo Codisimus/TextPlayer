@@ -261,7 +261,7 @@ public class Mailer {
             InputStreamReader isr = new InputStreamReader(message.getInputStream());
             BufferedReader br = new BufferedReader(isr);
             String line = br.readLine();
-            while (line != null) {
+            while (line != null)
                 if (line.contains("<br>"))
                     return line.replaceAll("<br>", "\n");
                 else {
@@ -271,7 +271,6 @@ public class Mailer {
                     else
                         line = br.readLine();
                 }
-            }
         }
         else if (message.isMimeType("text/*"))
             return s2S(message.getInputStream());
@@ -285,9 +284,8 @@ public class Mailer {
             try {
                 Reader reader = new BufferedReader(new InputStreamReader(is, "UTF-8"));
                 int n;
-                while ((n = reader.read(buffer)) != -1) {
+                while ((n = reader.read(buffer)) != -1)
                     writer.write(buffer, 0, n);
-                }
             }
             finally {
                 is.close();
@@ -300,9 +298,8 @@ public class Mailer {
     private static String cleanUp(String msg) {
         if (msg.contains("RE:"))
             msg = msg.replaceAll("RE:", "");
-        while (msg.startsWith(" ") || msg.startsWith("/") || msg.startsWith("\n")) {
+        while (msg.startsWith(" ") || msg.startsWith("/") || msg.startsWith("\n"))
             msg = msg.substring(1);
-        }
         String[] cleanUp = msg.split("\n");
         msg = cleanUp[0].trim();
         msg = msg.substring(0, 1).toLowerCase().concat(msg.substring(1));
@@ -324,6 +321,11 @@ public class Mailer {
             @Override
             public Server getServer() {
                 return TextPlayer.server;
+            }
+            
+            @Override
+            public String getName() {
+                return user.name;
             }
 
             @Override

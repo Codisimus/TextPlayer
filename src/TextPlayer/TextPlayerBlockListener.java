@@ -20,17 +20,15 @@ public class TextPlayerBlockListener extends BlockListener {
         String player = event.getPlayer().getName();
         if (block.equals("tnt")) {
             LinkedList<User> users = SaveSystem.getUsers();
-            for(User user : users) {
+            for(User user : users)
                 if (user.isWatchingItem("tnt"))
                     Mailer.sendMsg(null, user, player+" has placed tnt");
-            }
         }
         else if(block.equals("lava")) {
             LinkedList<User> users = SaveSystem.getUsers();
-            for(User user : users) {
+            for(User user : users)
                 if (user.isWatchingItem("lava"))
                     Mailer.sendMsg(null, user, player+" has placed lava");
-            }
         }
     }
 
@@ -39,10 +37,9 @@ public class TextPlayerBlockListener extends BlockListener {
         Player player = event.getPlayer();
         if (player != null) {
             LinkedList<User> users = SaveSystem.getUsers();
-            for(User user : users) {
+            for(User user : users)
                 if (user.isWatchingItem("fire"))
                     Mailer.sendMsg(null, user, player.getName()+" has lit a fire");
-            }
         }
     }
 }

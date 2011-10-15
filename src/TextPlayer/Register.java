@@ -1,8 +1,8 @@
 
 package TextPlayer;
 
-import com.nijikokun.register.payment.Method;
-import com.nijikokun.register.payment.Method.MethodAccount;
+import com.codisimus.textplayer.register.payment.Method;
+import com.codisimus.textplayer.register.payment.Method.MethodAccount;
 import org.bukkit.entity.Player;
 
 /**

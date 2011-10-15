@@ -1,6 +1,6 @@
 name: TextPlayer
 main: TextPlayer.TextPlayer
-version: 0.9
+version: 1.0.0
 author: Codisimus
 website: www.codisimus.com
 description: Receive text alerts to your phone

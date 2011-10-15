@@ -17,7 +17,7 @@ public class User {
     protected int textLimit = -1;
     protected int textsSent = 0;
     protected int lastText = 0;
-    private String watchingUsers = ",";
+    private String watchingPlayers = ",";
     private String watchingItems = ",";
     private String watchingWords = "";
     protected boolean logged = false;
@@ -30,7 +30,7 @@ public class User {
         this.textLimit = textLimit;
         this.textsSent = textsSent;
         this.lastText = lastText;
-        this.watchingUsers = users;
+        this.watchingPlayers = users;
         this.watchingItems = items;
         this.watchingWords = words;
     }
@@ -42,18 +42,16 @@ public class User {
     }
     
     protected boolean isAdmin() {
-        if (!TextPlayer.perm.equals("permissions 3"))
-            return false;
-        else if (TextPlayer.permissions != null)
-            return TextPlayer.permissions.getUserObject(world, name).hasPermission("textplayer.admin");
+        if (TextPlayer.permissions != null)
+            return TextPlayer.permissions.has(name, "textplayer.admin", world);
         return false;
     }
 
     protected boolean watchUser(String player) {
         player = player.toLowerCase().concat(",");
-        if (watchingUsers.contains(player))
+        if (watchingPlayers.contains(player))
             return false;
-        watchingUsers = watchingUsers.concat(player);
+        watchingPlayers = watchingPlayers.concat(player);
         return true;
     }
 
@@ -75,8 +73,8 @@ public class User {
 
     protected boolean unwatchUser(String player) {
         player = player.toLowerCase().concat(",");
-        if (watchingUsers.contains(player)) {
-            watchingUsers = watchingUsers.replace(player, "");
+        if (watchingPlayers.contains(player)) {
+            watchingPlayers = watchingPlayers.replace(player, "");
             return true;
         }
         return false;
@@ -84,8 +82,8 @@ public class User {
 
     protected boolean unwatchItem(String item) {
         item = item.toLowerCase().concat(",");
-        if (watchingUsers.contains(item)) {
-            watchingUsers = watchingUsers.replace(item, "");
+        if (watchingPlayers.contains(item)) {
+            watchingPlayers = watchingPlayers.replace(item, "");
             return true;
         }
         return false;
@@ -102,14 +100,16 @@ public class User {
 
     protected boolean isWatchingUser(String player) {
         player = player.toLowerCase().concat(",");
-        if (watchingUsers.contains(player))
+        if (watchingPlayers.contains(player))
+            return true;
+        else if (watchingPlayers.contains("*") && !name.equals(player))
             return true;
         return false;
     }
 
     protected boolean isWatchingItem(String item) {
         item = item.toLowerCase().concat(",");
-        if (watchingUsers.contains(item))
+        if (watchingPlayers.contains(item))
             return true;
         return false;
     }
@@ -117,10 +117,9 @@ public class User {
     protected boolean isWatchingWord(String msg) {
         msg = msg.toLowerCase();
         String[] words = watchingWords.toLowerCase().split(",");
-        for (String word : words) {
+        for (String word : words)
             if (msg.contains(word))
                 return true;
-        }
         return false;
     }
 
@@ -129,7 +128,7 @@ public class User {
     }
 
     protected String getWatchingUsers() {
-        return watchingUsers;
+        return watchingPlayers;
     }
 
     protected String getWatchingItems() {
@@ -145,12 +144,11 @@ public class User {
         network = network.replaceAll("-", "");
         network = network.toLowerCase();
         String old = email;
-        if (network.equals("email")) {
+        if (network.equals("email"))
             if (number.contains("@") && number.contains("."))
                 email = number;
             else
                 return "Invalid e-mail address";
-        }
         else {
             if (number.length() == 11)
                 number = number.substring(1);
@@ -159,7 +157,7 @@ public class User {
             try {
                 Properties p = new Properties();
                 p.load(new FileInputStream("plugins/TextPlayer/sms.gateways"));
-                if (Double.parseDouble(p.getProperty("Version")) < 0.9) {
+                if (Double.parseDouble(p.getProperty("Version")) < 1.0) {
                     TextPlayer.moveFile("sms.gateways");
                     return setEmail(number, network);
                 }

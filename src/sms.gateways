@@ -2,7 +2,7 @@
 #If you have an SMS Gateway not listed here, contact
 #Codisimus to have him add it to the List
 
-Version=0.9
+Version=1.0
 att=<number>@txt.att.net
 at&t=<number>@txt.att.net
 bell=<number>@txt.bell.ca
@@ -18,6 +18,7 @@ koodomobile=<number>@msg.telus.com
 lmt=<number>@smsmail.lmt.lv
 metropcs=<number>@mymetropcs.com
 mobistar=<number>@mobistar.be
+mts=<number>@text.mtsmobility.com
 netcom=<number>@sms.netcom.no
 ntelos=<number>@pcs.ntelos.com
 optimus=<number>@sms.optimus.pt
@@ -51,5 +52,6 @@ virginmobilecanada=<number>@vmobile.ca
 vivo=<number>@torpedoemail.com.br
 vodafonegermany=0<number>@vodafone-sms.de
 vodafonegreece=<number>@sms.vodafone.gr
+vodafoneiceland=<number>@mms.mymeteor.ie
 vodafoneitaly=<number>@sms.vodafone.it
 vodafoneuk=<number>@vodafone.net
