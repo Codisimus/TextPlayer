@@ -4,6 +4,42 @@ version: 1.0.0
 author: Codisimus
 website: www.codisimus.com
 description: Receive text alerts to your phone
+startup: postworld
 commands:
-  text:
-    description: Main command, type for additional help/commands
+  chunk:
+    description: Used to setup TextPlayer user settings
+    usage: /<command> help
+permissions:
+  textplayer.text:
+    default: true
+    description: Needed to send a Text Message
+  textplayer.textadmin:
+    default: true
+    description: Needed to send a Text Message to an admin
+  textplayer.use:
+    default: true
+    description: Needed to set your number and receive texts (/text set, /text list, /text limit, /text enable, /text disable)
+  textplayer.watch.server:
+    default: true
+    description: Needed to receive a text when the Server comes online (/text watch server)
+  textplayer.watch.player:
+    default: true
+    description: Needed to receive a text when a Player comes online (/text watch player)
+  textplayer.watch.everyplayer:
+    default: true
+    description: Needed to receive a text when any other Player comes online (/text watch player *)
+  textplayer.watch.item:
+    default: true
+    description: Needed to receive a text when an itemis placed (/text watch item)
+  textplayer.watch.word:
+    default: true
+    description: Needed to receive a text when a word is spoken (/text watch word)
+  textplayer.listusers:
+    default: true
+    description: Needed to list all of the Users who can receive texts (/text list users)
+  textplayer.free:
+    default: op
+    description: Send messages free of charge (Minecraft money, not real money. Messages never cost real money to send)
+  textplayer.admin:
+    default: op
+    description: Distinquishes the Player as an admin. Needed to text commands to the Server
