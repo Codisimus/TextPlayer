@@ -1,12 +1,12 @@
 name: TextPlayer
-main: TextPlayer.TextPlayer
+main: com.codisimus.plugins.textplayer.TextPlayer
 version: 1.0.0
 author: Codisimus
 website: www.codisimus.com
 description: Receive text alerts to your phone
 startup: postworld
 commands:
-  chunk:
+  text:
     description: Used to setup TextPlayer user settings
     usage: /<command> help
 permissions:
