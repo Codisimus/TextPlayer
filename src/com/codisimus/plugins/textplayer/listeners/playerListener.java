@@ -50,7 +50,8 @@ public class playerListener extends PlayerListener {
                 
                 //Send an alert to each Player watching the Player who logged
                 for (User user: SaveSystem.users)
-                    if (user.players.contains("*") || user.players.contains(logged))
+                    if ((user.players.contains("*") || user.players.contains(logged))
+                            && !user.name.equals(logged))
                         mailListener.sendMsg(null, user, logged+" has logged off");
             }
         };
@@ -66,12 +67,14 @@ public class playerListener extends PlayerListener {
     public void onPlayerJoin (PlayerJoinEvent event) {
         //Return if the Player was online less than a minute ago
         String logged = event.getPlayer().getName();
-        if (SaveSystem.findUser(logged).online)
+        User loggedUser = SaveSystem.findUser(logged);
+        if (loggedUser == null || loggedUser.online)
             return;
         
         //Send an alert to each Player watching the Player who logged
         for (User user: SaveSystem.users)
-            if (user.players.contains("*") || user.players.contains(logged))
+            if ((user.players.contains("*") || user.players.contains(logged))
+                    && !user.name.equals(logged))
                 mailListener.sendMsg(null, user, logged+" has logged on");
     }
 
@@ -82,10 +85,12 @@ public class playerListener extends PlayerListener {
      */
     @Override
     public void onPlayerChat (PlayerChatEvent event) {
-        //Send an alert to each Player that is watching a word that was spoken
         String msg = event.getMessage();
+        String player = event.getPlayer().getName();
+        
+        //Send an alert to each Player that is watching a word that was spoken
         for (User user: SaveSystem.users)
-            if (user.words.contains(msg))
+            if (user.words.contains(msg) && !user.name.equals(player))
                 mailListener.sendMsg(null, user, event.getPlayer().getName()+": "+msg);
     }
 }

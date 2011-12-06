@@ -2,6 +2,7 @@ package com.codisimus.plugins.textplayer;
 
 import com.codisimus.plugins.textplayer.listeners.mailListener;
 import com.codisimus.plugins.textplayer.listeners.blockListener;
+import com.codisimus.plugins.textplayer.listeners.commandListener;
 import com.codisimus.plugins.textplayer.listeners.playerListener;
 import com.codisimus.plugins.textplayer.listeners.pluginListener;
 import java.io.BufferedInputStream;
@@ -59,6 +60,7 @@ public class TextPlayer extends JavaPlugin {
             mailListener.checkMail();
 
         registerEvents();
+        getCommand("text").setExecutor(new commandListener());
         System.out.println("TextPlayer "+this.getDescription().getVersion()+" is enabled!");
 
         for (User user: SaveSystem.users)
@@ -215,12 +217,12 @@ public class TextPlayer extends JavaPlugin {
     public void registerEvents() {
         playerListener playerListener = new playerListener();
         blockListener blockListener = new blockListener();
-        pm.registerEvent(Event.Type.PLUGIN_ENABLE, new pluginListener(), Priority.Monitor, this);
-        pm.registerEvent(Type.PLAYER_CHAT, playerListener, Priority.Normal, this);
-        pm.registerEvent(Type.PLAYER_JOIN, playerListener, Priority.Normal, this);
-        pm.registerEvent(Type.PLAYER_QUIT, playerListener, Priority.Normal, this);
-        pm.registerEvent(Type.BLOCK_PLACE, blockListener, Priority.Normal, this);
-        pm.registerEvent(Type.BLOCK_IGNITE, blockListener, Priority.Normal, this);
+        pm.registerEvent(Type.PLUGIN_ENABLE, new pluginListener(), Priority.Monitor, this);
+        pm.registerEvent(Type.PLAYER_CHAT, playerListener, Priority.Monitor, this);
+        pm.registerEvent(Type.PLAYER_JOIN, playerListener, Priority.Monitor, this);
+        pm.registerEvent(Type.PLAYER_QUIT, playerListener, Priority.Monitor, this);
+        pm.registerEvent(Type.BLOCK_PLACE, blockListener, Priority.Monitor, this);
+        pm.registerEvent(Type.BLOCK_IGNITE, blockListener, Priority.Monitor, this);
     }
 
     /**

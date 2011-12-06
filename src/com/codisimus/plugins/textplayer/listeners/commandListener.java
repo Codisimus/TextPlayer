@@ -4,8 +4,6 @@ import com.codisimus.plugins.textplayer.Register;
 import com.codisimus.plugins.textplayer.SaveSystem;
 import com.codisimus.plugins.textplayer.TextPlayer;
 import com.codisimus.plugins.textplayer.User;
-import com.google.common.collect.Sets;
-import java.util.HashSet;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -20,9 +18,6 @@ public class commandListener implements CommandExecutor {
     public static enum Action { HELP, SET, CLEAR, WATCH, UNWATCH, ENABLE, DISABLE, LIMIT, LIST }
     public static enum WatchType { PLAYER, SERVER, ITEM, WORD }
     public static enum ListType { CARRIERS, USERS, ADMINS, WATCHING }
-    public static final HashSet TRANSPARENT = Sets.newHashSet((byte)27, (byte)28,
-            (byte)37, (byte)38, (byte)39, (byte)40, (byte)50, (byte)65, (byte)66,
-            (byte)69, (byte)70, (byte)72, (byte)75, (byte)76, (byte)78);
     
     /**
      * Listens for ButtonWarp commands to execute them
@@ -41,8 +36,18 @@ public class commandListener implements CommandExecutor {
         
         Player player = (Player)sender;
 
-        //Display help page if the Player did not add any arguments
+        //Display the help page if the Player did not add any arguments
         if (args.length == 0) {
+            sendHelp(player);
+            return true;
+        }
+        
+        Action action;
+        
+        try {
+            action = Action.valueOf(args[0].toUpperCase());
+        }
+        catch (Exception notEnum) {
             sendHelp(player);
             return true;
         }
@@ -50,7 +55,7 @@ public class commandListener implements CommandExecutor {
         User user;
         
         //Execute the correct command
-        switch (Action.valueOf(args[0])) {
+        switch (action) {
             case SET:
                 if (args.length == 3)
                     set(player, args[1], args[2]);
@@ -67,6 +72,11 @@ public class commandListener implements CommandExecutor {
                 return true;
                 
             case WATCH:
+                if (args.length <= 2) {
+                    sendWatchHelp(player);
+                    return true;
+                }
+                
                 //Cancel if the Player does not have the needed permission
                 if (!TextPlayer.hasPermission(player, "watch."+args[1])) {
                     player.sendMessage("You do not have permission to do that");
@@ -81,12 +91,23 @@ public class commandListener implements CommandExecutor {
                         watch(player, WatchType.SERVER, null);
                         return true;
                     
-                    case 3: watch(player, WatchType.valueOf(args[1]), args[2]); return true;
+                    case 3:
+                        WatchType watchType;
+
+                        try {
+                            watchType = WatchType.valueOf(args[1].toUpperCase());
+                        }
+                        catch (Exception notEnum) {
+                            break;
+                        }
+                        
+                        watch(player, watchType, args[2]);
+                        return true;
                         
                     default: break;
                 }
                 
-                watch(player, null, null);
+                sendWatchHelp(player);
                 return true;
                 
             case UNWATCH:
@@ -98,7 +119,7 @@ public class commandListener implements CommandExecutor {
                         unwatch(player, WatchType.SERVER, null);
                         return true;
                     
-                    case 3: unwatch(player, WatchType.valueOf(args[1]), args[2]); return true;
+                    case 3: unwatch(player, WatchType.valueOf(args[1].toUpperCase()), args[2]); return true;
                         
                     default: break;
                 }
@@ -161,8 +182,19 @@ public class commandListener implements CommandExecutor {
                 return true;
                 
             case LIST:
-                if (args.length == 2)
-                    list(player, ListType.valueOf(args[1]));
+                if (args.length == 2) {
+                    ListType listType;
+        
+                    try {
+                        listType = ListType.valueOf(args[1].toUpperCase());
+                    }
+                    catch (Exception notEnum) {
+                        sendHelp(player);
+                        return true;
+                    }
+                    
+                    list(player, listType);
+                }
                 else
                     sendHelp(player);
                 
@@ -330,15 +362,7 @@ public class commandListener implements CommandExecutor {
                 player.sendMessage("Now watching "+name);
                 break;
             
-            default:
-                player.sendMessage("§5     TextPlayer Watch Help Page:");
-                player.sendMessage("§2/text watch player [Name]§b Be alerted when Player logs on");
-                player.sendMessage("§2/text watch player *§b Be alerted when any Player logs on");
-                player.sendMessage("§2/text watch server§b Be alerted when Server comes online");
-                player.sendMessage("§2/text watch item tnt§b Receive message when tnt is placed");
-                player.sendMessage("§2/text watch item fire§b Receive message when fire is lit");
-                player.sendMessage("§2/text watch word [Word]§b Receive message when word is spoken");
-                return;
+            default: return;
         }
         
         SaveSystem.save();
@@ -491,6 +515,21 @@ public class commandListener implements CommandExecutor {
                 player.sendMessage("§2Watching Words: ".concat(user.words.toString()));
                 return;
         }
+    }
+    
+    /**
+     * Displays the TextPlayer Watch Help Page to the given Player
+     *
+     * @param player The Player needing help
+     */
+    public static void sendWatchHelp(Player player) {
+        player.sendMessage("§5     TextPlayer Watch Help Page:");
+        player.sendMessage("§2/text watch player [Name]§b Be alerted when Player logs on");
+        player.sendMessage("§2/text watch player *§b Be alerted when any Player logs on");
+        player.sendMessage("§2/text watch server§b Be alerted when Server comes online");
+        player.sendMessage("§2/text watch item tnt§b Receive message when tnt is placed");
+        player.sendMessage("§2/text watch item fire§b Receive message when fire is lit");
+        player.sendMessage("§2/text watch word [Word]§b Receive message when word is spoken");
     }
     
     /**

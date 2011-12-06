@@ -38,7 +38,7 @@ public class SaveSystem {
                 user.lastText = Integer.parseInt(data[5]);
 
                 //Check if an old save file
-                if (data.length == 9) {
+                if (data.length != 10) {
                     //Update outdated save file
                     if (data[6].contains("server,"))
                         data[6] = data[6].replaceAll("server,", ",");
@@ -47,33 +47,40 @@ public class SaveSystem {
                     if (data[6].equals(","))
                         data[6] = "none";
 
-                    if (!data[6].equals("none")) 
-                        user.players = new LinkedList(Arrays.asList(data[6].split(",")));
+                    if (data.length > 6)
+                        if (!data[6].equals("none")) 
+                            user.players = new LinkedList(Arrays.asList(data[6].split(",")));
 
-                    //Update outdated save file
-                    if (data[7].equals(","))
-                        data[7] = "none";
+                    if (data.length > 7) {
+                        //Update outdated save file
+                        if (data[7].equals(","))
+                            data[7] = "none";
 
-                    if (!data[7].equals("none"))
-                        user.items = new LinkedList(Arrays.asList(data[7].split(",")));
+                        if (!data[7].equals("none"))
+                            user.items = new LinkedList(Arrays.asList(data[7].split(",")));
+                    }
+                    
+                    if (data.length > 8) {
+                        //Update outdated save file
+                        if (data[8].equals(","))
+                            data[8] = "none";
 
-                    //Update outdated save file
-                    if (data[8].equals(","))
-                        data[8] = "none";
-
-                    if (!data[8].equals("none"))
-                        user.words = new LinkedList(Arrays.asList(data[8].split(",")));
-
+                        if (!data[8].equals("none"))
+                            user.words = new LinkedList(Arrays.asList(data[8].split(",")));
+                    }
+                    
                     users.add(user);
+                    
+                    save();
                 }
                 else {
                     user.watchingServer = Boolean.parseBoolean(data[6]);
                     
-                    user.players = new LinkedList(Arrays.asList(data[6].substring(1, data[6].length() - 1).split(", ")));
+                    user.players = new LinkedList(Arrays.asList(data[7].substring(1, data[7].length() - 1).split(", ")));
 
-                    user.items = new LinkedList(Arrays.asList(data[7].substring(1, data[7].length() - 1).split(", ")));
+                    user.items = new LinkedList(Arrays.asList(data[8].substring(1, data[8].length() - 1).split(", ")));
 
-                    user.words = new LinkedList(Arrays.asList(data[8].substring(1, data[8].length() - 1).split(", ")));
+                    user.words = new LinkedList(Arrays.asList(data[9].substring(1, data[9].length() - 1).split(", ")));
 
                     users.add(user);
                 }

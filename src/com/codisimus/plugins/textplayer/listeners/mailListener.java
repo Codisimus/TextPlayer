@@ -257,7 +257,7 @@ public class mailListener {
                                                                 else
                                                                     sendMsg(null, user, "Reply 'enable' to link this number to "+user.name);
                                                             else
-                                                                switch (Action.valueOf(split[0])) {
+                                                                switch (Action.valueOf(split[0].toUpperCase())) {
                                                                     case ENABLE:
                                                                         sendMsg(null, user, "Number/Email linked to "+user.name);
                                                                         break;
