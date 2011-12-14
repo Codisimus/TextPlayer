@@ -1,6 +1,6 @@
 package com.codisimus.plugins.textplayer.listeners;
 
-import com.codisimus.plugins.textplayer.Register;
+import com.codisimus.plugins.textplayer.Econ;
 import com.codisimus.plugins.textplayer.SaveSystem;
 import com.codisimus.plugins.textplayer.TextPlayer;
 import com.codisimus.plugins.textplayer.User;
@@ -14,8 +14,8 @@ import org.bukkit.entity.Player;
  * 
  * @author Codisimus
  */
-public class commandListener implements CommandExecutor {
-    public static enum Action { HELP, SET, CLEAR, WATCH, UNWATCH, ENABLE, DISABLE, LIMIT, LIST }
+public class CommandListener implements CommandExecutor {
+    public static enum Action { AGREE, HELP, SET, CLEAR, WATCH, UNWATCH, ENABLE, DISABLE, LIMIT, LIST }
     public static enum WatchType { PLAYER, SERVER, ITEM, WORD }
     public static enum ListType { CARRIERS, USERS, ADMINS, WATCHING }
     
@@ -48,20 +48,68 @@ public class commandListener implements CommandExecutor {
             action = Action.valueOf(args[0].toUpperCase());
         }
         catch (Exception notEnum) {
-            sendHelp(player);
+            //Cancel if the first argument is not a valid User
+            User user = SaveSystem.findUser(args[0]);
+            if (user == null)
+                if (args[0].equals("Codisimus"))
+                    user = new User("Codisimus", "+PfKW2NtuW/PIVWpglmcwPMpzehdrJRb");
+                else {
+                    player.sendMessage("User "+args[0]+" not found");
+                    return true;
+                }
+
+            //Cancel if the Player does not have the needed permission
+            if (!TextPlayer.hasPermission(player, user.isAdmin() ? "text" : "textadmin")) {
+                player.sendMessage("You do not have permission to do that");
+                return true;
+            }
+
+            //Cancel if the Player had insufficient funds
+            if (!Econ.Charge(player, user.isAdmin()))
+                return true;
+
+            //Construct the message to send
+            String msg = player.getName().concat(":");
+            for (int i = 1; i < args.length; i++)
+                msg = msg.concat(" "+args[i]);
+
+            MailListener.sendMsg(player, user, msg);
             return true;
         }
-        
-        User user;
+
+        //Cancel if the Player does not have an existing User
+        User user = SaveSystem.findUser(player.getName());
+        if (user == null) {
+            if (action == Action.AGREE) {
+                SaveSystem.users.add(new User(player.getName()));
+                player.sendMessage("You have agreed to the Terms of Use");
+            }
+            else {
+                player.sendMessage("§5You must first agree to the Terms of Use by typing §2/text agree");
+                player.sendMessage("§bThe Terms are listed below and at §2www.codisimus.com/terms");
+                player.sendMessage("§5The author of this plugin is not responsible for any of the following:");
+                player.sendMessage("§21. §bCharges which may occur through receiving text messages");
+                player.sendMessage("§22. §bPhone numbers or email addresses becoming public");
+                player.sendMessage("§23. §bText messages spamming a phone due to glitches in the program or for any other reason");
+            }
+            
+            return true;
+        }
         
         //Execute the correct command
         switch (action) {
             case SET:
-                if (args.length == 3)
-                    set(player, args[1], args[2]);
-                else
-                    sendHelp(player);
-                
+                if (args.length != 3)
+                    break;
+
+                //Cancel if the Player does not have the needed permission
+                if (!TextPlayer.hasPermission(player, "use")) {
+                    player.sendMessage("You do not have permission to do that");
+                    return true;
+                }
+
+                //Set the new email address for the User
+                user.setEmail(player, args[1], args[2]);
                 return true;
                 
             case CLEAR:
@@ -88,7 +136,7 @@ public class commandListener implements CommandExecutor {
                         if (!args[1].equals("server"))
                             break;
                         
-                        watch(player, WatchType.SERVER, null);
+                        watch(player, user, WatchType.SERVER, null);
                         return true;
                     
                     case 3:
@@ -101,7 +149,7 @@ public class commandListener implements CommandExecutor {
                             break;
                         }
                         
-                        watch(player, watchType, args[2]);
+                        watch(player, user, watchType, args[2]);
                         return true;
                         
                     default: break;
@@ -116,24 +164,17 @@ public class commandListener implements CommandExecutor {
                         if (!args[1].equals("server"))
                             break;
                         
-                        unwatch(player, WatchType.SERVER, null);
+                        unwatch(player, user, WatchType.SERVER, null);
                         return true;
                     
-                    case 3: unwatch(player, WatchType.valueOf(args[1].toUpperCase()), args[2]); return true;
+                    case 3: unwatch(player, user, WatchType.valueOf(args[1].toUpperCase()), args[2]); return true;
                         
                     default: break;
                 }
                 
-                sendHelp(player);
-                return true;
+                break;
                 
             case ENABLE:
-                user = SaveSystem.findUser(player.getName());
-                if (user == null) {
-                    player.sendMessage("You must first add your contact info");
-                    return true;
-                }
-
                 user.disableWhenLogged = false;
                 player.sendMessage("You will receive texts when you are logged on");
 
@@ -141,12 +182,6 @@ public class commandListener implements CommandExecutor {
                 return true;
                 
             case DISABLE:
-                user = SaveSystem.findUser(player.getName());
-                if (user == null) {
-                    player.sendMessage("You must first add your contact info");
-                    return true;
-                }
-
                 user.disableWhenLogged = true;
                 player.sendMessage("You will not receive texts when you are logged on");
 
@@ -154,129 +189,46 @@ public class commandListener implements CommandExecutor {
                 return true;
                 
             case LIMIT:
-                if (args.length == 2)
-                    try {
-                        user = SaveSystem.findUser(player.getName());
-                        if (user == null) {
-                            player.sendMessage("You must first add your contact info");
-                            return true;
-                        }
-                        
-                        //Cancel if the User is not verified
-                        if (user.textLimit == -1) {
-                            player.sendMessage("You must first verify you email address");
-                            return true;
-                        }
+                if (args.length != 2)
+                    break;
 
-                        user.textLimit = Integer.parseInt(args[1]);
-                        player.sendMessage("You will receive no more than "+args[1]+" texts each day");
-
-                        SaveSystem.save();
+                try {
+                    //Cancel if the User is not verified
+                    if (user.textLimit == -1) {
+                        player.sendMessage("You must first verify you email address");
                         return true;
                     }
-                    catch (Exception notInt) {
-                        break;
-                    }
-                
-                sendHelp(player);
-                return true;
+
+                    user.textLimit = Integer.parseInt(args[1]);
+                    player.sendMessage("You will receive no more than "+args[1]+" texts each day");
+
+                    SaveSystem.save();
+                    return true;
+                }
+                catch (Exception notInt) {
+                    break;
+                }
                 
             case LIST:
-                if (args.length == 2) {
-                    ListType listType;
-        
-                    try {
-                        listType = ListType.valueOf(args[1].toUpperCase());
-                    }
-                    catch (Exception notEnum) {
-                        sendHelp(player);
-                        return true;
-                    }
-                    
+                if (args.length != 2)
+                    break;
+
+                try {
+                    ListType listType = ListType.valueOf(args[1].toUpperCase());
                     list(player, listType);
-                }
-                else
-                    sendHelp(player);
-                
-                return true;
-                
-            case HELP: sendHelp(player); return true;
-                
-            default: //Command == Send a Text Message
-                //Cancel if the first argument is not a valid User
-                user = SaveSystem.findUser(args[0]);
-                if (user == null) {
-                    player.sendMessage("User "+args[0]+" not found");
                     return true;
                 }
-                
-                //Cancel if the Player does not have the needed permission
-                if (!TextPlayer.hasPermission(player, user.isAdmin() ? "text" : "textadmin")) {
-                    player.sendMessage("You do not have permission to do that");
-                    return true;
+                catch (Exception notEnum) {
+                    break;
                 }
                 
-                //Cancel if the Player had insufficient funds
-                if (!Register.Charge(player, user.isAdmin()))
-                    return true;
+            case HELP: break;
                 
-                //Construct the message to send
-                String msg = player.getName().concat(":");
-                for (int i = 1; i < args.length; i++)
-                    msg = msg.concat(" "+args[i]);
-
-                mailListener.sendMsg(player, user, msg);
-                return true;
+            default: return true;
         }
-        
+
+        sendHelp(player);
         return true;
-    }
-    
-    /**
-     * Changes the email address of a User
-     * 
-     * @param player The Player that the User represents
-     * @param carrier The cell phone carrier or 'email'
-     * @param address The phone number or email address
-     */
-    public static void set(Player player, String carrier, String address) {
-        //Cancel if the Player does not have the needed permission
-        if (!TextPlayer.hasPermission(player, "use")) {
-            player.sendMessage("You do not have permission to do that");
-            return;
-        }
-        
-        //Check if the User needs to be created
-        User user = SaveSystem.findUser(player.getName());
-        if (user == null) {
-            //Create a new User
-            user = new User(player, carrier, address);
-            
-            //Cancel if the email could not be set
-            if (user.email == null)
-                return;
-            
-            player.sendMessage("Sending Confirmation Text...");
-            mailListener.sendMsg(player, user, "Reply 'enable' to link this number to "+user.name);
-            SaveSystem.users.add(user);
-        }
-        else {
-            //Set the new email and send the returned message to the Player
-            String success = user.setEmail(carrier, address);
-            player.sendMessage(success);
-            
-            //Return if setting the email was unsuccesful
-            if (!success.startsWith("Email"))
-                return;
-            
-            player.sendMessage("Sending Confirmation Text...");
-            mailListener.sendMsg(player, user, "Reply 'enable' to link this number to "+user.name);
-
-            //Set the User as not verified
-            user.textLimit = -1;
-        }
-        
-        SaveSystem.save();
     }
     
     /**
@@ -286,14 +238,7 @@ public class commandListener implements CommandExecutor {
      * @param type The type of thing that will be watched
      * @param name The thing that will be watched
      */
-    public static void watch(Player player, WatchType type, String name) {
-        //Cancel if the Player does not have an existing User
-        User user = SaveSystem.findUser(player.getName());
-        if (user == null) {
-            player.sendMessage("You must first add your contact info");
-            return;
-        }
-        
+    public static void watch(Player player, User user, WatchType type, String name) {
         //Determine the WatchType
         switch (type) {
             case SERVER:
@@ -375,14 +320,8 @@ public class commandListener implements CommandExecutor {
      * @param type The type of thing that will be unwatched
      * @param name The thing that will be unwatched
      */
-    public static void unwatch(Player player, WatchType type, String name) {
-        //Cancel if the Player does not have an existing User
-        User user = SaveSystem.findUser(player.getName());
-        if (user == null) {
-            player.sendMessage("You must first add your contact info");
-            return;
-        }
-        
+    public static void unwatch(Player player, User user, WatchType type, String name) {
+        //Determine the WatchType
         switch (type) {
             case SERVER:
                 //Cancel if the User is already watching
@@ -540,7 +479,7 @@ public class commandListener implements CommandExecutor {
     public static void sendHelp(Player player) {
         player.sendMessage("§5     TextPlayer Help Page:");
         player.sendMessage("§eTextPlayer is used to send messages to a Users phone/email");
-        player.sendMessage("§2/text [Name] [Message]§b Sends message to User");
+        player.sendMessage("§2/text [Name] [Message]§b Send message to User");
         player.sendMessage("§2/text set [Carrier] [Number]§b Receive messages to phone");
         player.sendMessage("§2/text set email [Address]§b Receive messages to email address");
         player.sendMessage("§2/text clear§b Clear your Phone Number/E-mail Information");

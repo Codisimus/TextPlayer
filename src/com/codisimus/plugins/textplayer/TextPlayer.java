@@ -1,10 +1,9 @@
 package com.codisimus.plugins.textplayer;
 
-import com.codisimus.plugins.textplayer.listeners.mailListener;
-import com.codisimus.plugins.textplayer.listeners.blockListener;
-import com.codisimus.plugins.textplayer.listeners.commandListener;
-import com.codisimus.plugins.textplayer.listeners.playerListener;
-import com.codisimus.plugins.textplayer.listeners.pluginListener;
+import com.codisimus.plugins.textplayer.listeners.MailListener;
+import com.codisimus.plugins.textplayer.listeners.BlockEventListener;
+import com.codisimus.plugins.textplayer.listeners.CommandListener;
+import com.codisimus.plugins.textplayer.listeners.PlayerEventListener;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -15,14 +14,15 @@ import java.io.OutputStream;
 import java.util.Properties;
 import java.util.jar.JarFile;
 import java.util.zip.ZipEntry;
+import net.milkbowl.vault.economy.Economy;
+import net.milkbowl.vault.permission.Permission;
 import org.bukkit.Server;
 import org.bukkit.entity.Player;
-import org.bukkit.event.Event;
 import org.bukkit.event.Event.Priority;
 import org.bukkit.event.Event.Type;
 import org.bukkit.plugin.PluginManager;
+import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
-import ru.tehkode.permissions.PermissionManager;
 
 /**
  * Loads Plugin and manages Permissions
@@ -31,7 +31,7 @@ import ru.tehkode.permissions.PermissionManager;
  */
 public class TextPlayer extends JavaPlugin {
     public static String perm;
-    public static PermissionManager permissions;
+    public static Permission permission;
     public static Server server;
     public static PluginManager pm;
     public static Encrypter encrypter = new Encrypter("SeVenTy*7");
@@ -39,6 +39,10 @@ public class TextPlayer extends JavaPlugin {
 
     @Override
     public void onDisable () {
+        //Stop checking for new mail
+        MailListener.enabled = false;
+        MailListener.loop = false;
+        System.out.println("[TextPlayer] Checking for new mail disabled until server start");
     }
 
     /**
@@ -49,23 +53,47 @@ public class TextPlayer extends JavaPlugin {
     public void onEnable () {
         server = getServer();
         pm = server.getPluginManager();
+        
         checkFiles();
         loadSettings();
+        
+        //Find Permissions
+        RegisteredServiceProvider<Permission> permissionProvider =
+                getServer().getServicesManager().getRegistration(net.milkbowl.vault.permission.Permission.class);
+        if (permissionProvider != null)
+            permission = permissionProvider.getProvider();
+        
+        //Find Economy
+        RegisteredServiceProvider<Economy> economyProvider =
+                getServer().getServicesManager().getRegistration(net.milkbowl.vault.economy.Economy.class);
+        if (economyProvider != null)
+            Econ.economy = economyProvider.getProvider();
+        
         SaveSystem.load();
 
         //Start checking mail if the email.properties file is filled out
-        if (mailListener.username.equals(""))
+        if (MailListener.username.equals(""))
             System.err.println("[TextPlayer] Please create email account for email.properties");
-        else
-            mailListener.checkMail();
+        else {
+            MailListener.checkMail();
+            System.out.println("[TextPlayer] Checking for new mail...");
+        }
 
-        registerEvents();
-        getCommand("text").setExecutor(new commandListener());
+        //Register Events
+        PlayerEventListener playerListener = new PlayerEventListener();
+        BlockEventListener blockListener = new BlockEventListener();
+        pm.registerEvent(Type.PLAYER_CHAT, playerListener, Priority.Monitor, this);
+        pm.registerEvent(Type.PLAYER_JOIN, playerListener, Priority.Monitor, this);
+        pm.registerEvent(Type.PLAYER_QUIT, playerListener, Priority.Monitor, this);
+        pm.registerEvent(Type.BLOCK_PLACE, blockListener, Priority.Monitor, this);
+        pm.registerEvent(Type.BLOCK_IGNITE, blockListener, Priority.Monitor, this);
+        getCommand("text").setExecutor(new CommandListener());
+        
         System.out.println("TextPlayer "+this.getDescription().getVersion()+" is enabled!");
 
         for (User user: SaveSystem.users)
             if (user.watchingServer)
-                mailListener.sendMsg(null, user, "Server has just come online");
+                MailListener.sendMsg(null, user, "Server has just come online");
     }
     
     /**
@@ -153,43 +181,40 @@ public class TextPlayer extends JavaPlugin {
         p = new Properties();
         try {
             p.load(new FileInputStream("plugins/TextPlayer/config.properties"));
-        }
-        catch (Exception e) {
-        }
-        mailListener.interval = Integer.parseInt(loadValue("CheckMailInterval"));
-        mailListener.refresh = Integer.parseInt(loadValue("RefreshIMAPConnection"));
-        mailListener.notify = Boolean.parseBoolean(loadValue("NotifyInServerLog"));
-        mailListener.debug = Boolean.parseBoolean(loadValue("Debug"));
-        Register.economy = loadValue("Economy");
-        Register.cost = Integer.parseInt(loadValue("CostToText"));
-        Register.costAdmin = Integer.parseInt(loadValue("CostToTextAnAdmin"));
-        pluginListener.useBP = Boolean.parseBoolean(loadValue("UseBukkitPermissions"));
-        p = new Properties();
-        try {
-            p.load(new FileInputStream("plugins/TextPlayer/email.properties"));
-        }
-        catch (Exception e) {
-        }
-        mailListener.username = loadValue("Username");
-        String passToEncrypt = loadValue("Password");
-        mailListener.pass = loadValue("PasswordEncrypted");
-        mailListener.smtphost = loadValue("SMTPHost");
-        mailListener.imaphost = loadValue("IMAPHost");
-        mailListener.smtpport = Integer.parseInt(loadValue("SMTPPort"));
-        mailListener.imapport = Integer.parseInt(loadValue("IMAPPort"));
-        
-        //Encrypt the password if it is not already encrypted
-        if (!passToEncrypt.isEmpty()) {
-            mailListener.pass = encrypter.encrypt(passToEncrypt);
-            p.setProperty("PasswordEncrypted", mailListener.pass);
-            p.setProperty("Password", "");
             
-            //Save the email.properties file with the newly encrypted password
-            try {
+            MailListener.interval = Integer.parseInt(loadValue("CheckMailInterval"));
+            MailListener.refresh = Integer.parseInt(loadValue("RefreshIMAPConnection"));
+
+            MailListener.notify = Boolean.parseBoolean(loadValue("NotifyInServerLog"));
+            MailListener.debug = Boolean.parseBoolean(loadValue("Debug"));
+
+            Econ.cost = Integer.parseInt(loadValue("CostToText"));
+            Econ.costAdmin = Integer.parseInt(loadValue("CostToTextAnAdmin"));
+
+            p.load(new FileInputStream("plugins/TextPlayer/email.properties"));
+
+            MailListener.username = loadValue("Username");
+            String passToEncrypt = loadValue("Password");
+            MailListener.pass = loadValue("PasswordEncrypted");
+
+            MailListener.smtphost = loadValue("SMTPHost");
+            MailListener.imaphost = loadValue("IMAPHost");
+            MailListener.smtpport = Integer.parseInt(loadValue("SMTPPort"));
+            MailListener.imapport = Integer.parseInt(loadValue("IMAPPort"));
+
+            //Encrypt the password if it is not already encrypted
+            if (!passToEncrypt.isEmpty()) {
+                MailListener.pass = encrypter.encrypt(passToEncrypt);
+                p.setProperty("PasswordEncrypted", MailListener.pass);
+                p.setProperty("Password", "");
+
+                //Save the email.properties file with the newly encrypted password
                 p.store(new FileOutputStream("plugins/TextPlayer/email.properties"), null);
             }
-            catch (Exception e) {
-            }
+        }
+        catch (Exception missingProp) {
+            System.err.println("Failed to load ButtonWarp "+this.getDescription().getVersion());
+            missingProp.printStackTrace();
         }
     }
 
@@ -209,21 +234,6 @@ public class TextPlayer extends JavaPlugin {
         
         return p.getProperty(key);
     }
-    
-    /**
-     * Registers events for the TextPlayer Plugin
-     *
-     */
-    public void registerEvents() {
-        playerListener playerListener = new playerListener();
-        blockListener blockListener = new blockListener();
-        pm.registerEvent(Type.PLUGIN_ENABLE, new pluginListener(), Priority.Monitor, this);
-        pm.registerEvent(Type.PLAYER_CHAT, playerListener, Priority.Monitor, this);
-        pm.registerEvent(Type.PLAYER_JOIN, playerListener, Priority.Monitor, this);
-        pm.registerEvent(Type.PLAYER_QUIT, playerListener, Priority.Monitor, this);
-        pm.registerEvent(Type.BLOCK_PLACE, blockListener, Priority.Monitor, this);
-        pm.registerEvent(Type.BLOCK_IGNITE, blockListener, Priority.Monitor, this);
-    }
 
     /**
      * Returns boolean value of whether the given player has the specific permission
@@ -233,11 +243,6 @@ public class TextPlayer extends JavaPlugin {
      * @return true if the given player has the specific permission
      */
     public static boolean hasPermission(Player player, String type) {
-        //Check if a Permission Plugin is present
-        if (permissions != null)
-            return permissions.has(player, "textplayer."+type);
-        
-        //Return Bukkit Permission value
-        return player.hasPermission("textplayer."+type);
+        return permission.has(player, "textplayer."+type);
     }
 }

