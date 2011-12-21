@@ -13,13 +13,13 @@ import javax.crypto.spec.PBEParameterSpec;
  * 
  */
 public class Encrypter {
-    Cipher ecipher;
-    Cipher dcipher;
-    byte[] salt = {
+    private Cipher ecipher;
+    private Cipher dcipher;
+    private byte[] salt = {
         (byte)0xA9, (byte)0x9B, (byte)0xC8, (byte)0x32,
         (byte)0x56, (byte)0x35, (byte)0xE3, (byte)0x03
     };
-    int iterationCount = 19;
+    private int iterationCount = 19;
 
     /**
      * Constructs a new Encrypter with the given pass phrase

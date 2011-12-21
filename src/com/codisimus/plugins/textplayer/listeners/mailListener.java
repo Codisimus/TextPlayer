@@ -1,6 +1,5 @@
 package com.codisimus.plugins.textplayer.listeners;
 
-import com.codisimus.plugins.textplayer.SaveSystem;
 import com.codisimus.plugins.textplayer.TextPlayer;
 import com.codisimus.plugins.textplayer.User;
 import com.codisimus.plugins.textplayer.EmailAuthenticator;
@@ -69,7 +68,7 @@ public class MailListener {
             @Override
             public void run() {
                 //Cancel if the User is online and has disabled when logged set to true
-                if (user.online && user.disableWhenLogged) {
+                if (user.disableWhenLogged && PlayerEventListener.online.contains(user.name)) {
                     //Notify the Server log if set to in the config
                     if (notify)
                         System.out.println("[TextPlayer] User is currently online");
@@ -126,7 +125,7 @@ public class MailListener {
                         default: msg = text; break;
                     }
                     
-                    SaveSystem.save();
+                    TextPlayer.save();
                 }
                 else
                     msg = text;
@@ -181,8 +180,7 @@ public class MailListener {
     }
     
     public static void checkMail() {
-        
-                                        //Loop if there is no interval between checking mail//Loop if there is no interval between checking mail
+        //Loop if there is no interval between checking mail
         loop = interval == 0;
         
         //Start a new Thread
@@ -218,7 +216,7 @@ public class MailListener {
                                                         for (Address address: message.getFrom()) {
                                                             //Find the User who's email matches the address
                                                             String from = address.toString().toLowerCase();
-                                                            for(User tempUser: SaveSystem.users)
+                                                            for(User tempUser: TextPlayer.users)
                                                                 if (from.contains(TextPlayer.encrypter.decrypt(tempUser.email))) {
                                                                     user = tempUser;
                                                                     
@@ -257,7 +255,7 @@ public class MailListener {
                                                                 if (split[0].equals("enable") || split[0].equals("'enable'")) {
                                                                     //Set the User as verified
                                                                     user.textLimit = 0;
-                                                                    SaveSystem.save();
+                                                                    TextPlayer.save();
                                                                     sendMsg(null, user, "Number/Email linked to "+user.name);
                                                                 }
                                                                 else
@@ -273,7 +271,7 @@ public class MailListener {
                                                                         case DISABLE: //Set the User as not verified
                                                                             sendMsg(null, user, "Texts to this number have been disabled, To receive texts reply 'enable'");
                                                                             user.textLimit = -1;
-                                                                            SaveSystem.save();
+                                                                            TextPlayer.save();
                                                                             break;
 
                                                                         case PL: //Fall through
@@ -306,7 +304,7 @@ public class MailListener {
                                                                             break;
 
                                                                         case TEXT: //Send a message to a User
-                                                                            User user2 = SaveSystem.findUser(split[1]);
+                                                                            User user2 = TextPlayer.findUser(split[1]);
 
                                                                             if (user2 == null)
                                                                                 sendMsg(null, user, split[1]+" does not have a TextPlayer account");
@@ -406,7 +404,7 @@ public class MailListener {
      * @return The String representation of the Message
      * @throws Exception If anything goes wrong
      */
-    public static String getMsg(Message message) throws Exception {
+    private static String getMsg(Message message) throws Exception {
         //I cannot remember what this code is actually doing
         if (message.isMimeType("multipart/*")) {
             BufferedReader br = new BufferedReader(new InputStreamReader(message.getInputStream()));
@@ -437,7 +435,7 @@ public class MailListener {
      * @return The String representation of the InputStream
      * @throws Exception If anything goes wrong
      */
-    public static String s2S(InputStream is) throws Exception {
+    private static String s2S(InputStream is) throws Exception {
         //Return an empty string if no InputStream was given
         if (is == null)
             return "";
@@ -464,7 +462,7 @@ public class MailListener {
      * @param msg The String to be cleaned
      * @return The cleaned String
      */
-    public static String cleanUp(String msg) {
+    private static String cleanUp(String msg) {
         //Eliminate all 'RE:'s
         if (msg.contains("RE:"))
             msg = msg.replaceAll("RE:", "");
@@ -486,7 +484,7 @@ public class MailListener {
      * @param user The given User
      * @return A CommandSender for the given User
      */
-    public static CommandSender getSender(final User user) {
+    private static CommandSender getSender(final User user) {
         return new CommandSender() {
             @Override
             public void sendMessage(String string) {

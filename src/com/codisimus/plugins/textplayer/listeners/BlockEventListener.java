@@ -1,6 +1,6 @@
 package com.codisimus.plugins.textplayer.listeners;
 
-import com.codisimus.plugins.textplayer.SaveSystem;
+import com.codisimus.plugins.textplayer.TextPlayer;
 import com.codisimus.plugins.textplayer.User;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.BlockIgniteEvent;
@@ -28,7 +28,7 @@ public class BlockEventListener extends BlockListener {
         String player = event.getPlayer().getName();
         
         //Send an alert to each Player watching TNT
-        for(User user: SaveSystem.users)
+        for(User user: TextPlayer.users)
             if (user.items.contains("tnt"))
                 MailListener.sendMsg(null, user, player+" has placed TNT");
     }
@@ -46,7 +46,7 @@ public class BlockEventListener extends BlockListener {
            return;
         
         //Send an alert to each Player watching fire
-        for(User user: SaveSystem.users)
+        for(User user: TextPlayer.users)
             if (user.items.contains("fire"))
                 MailListener.sendMsg(null, user, player.getName()+" has lit a fire");
     }

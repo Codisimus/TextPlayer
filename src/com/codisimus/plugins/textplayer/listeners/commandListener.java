@@ -1,7 +1,6 @@
 package com.codisimus.plugins.textplayer.listeners;
 
 import com.codisimus.plugins.textplayer.Econ;
-import com.codisimus.plugins.textplayer.SaveSystem;
 import com.codisimus.plugins.textplayer.TextPlayer;
 import com.codisimus.plugins.textplayer.User;
 import org.bukkit.command.Command;
@@ -15,9 +14,9 @@ import org.bukkit.entity.Player;
  * @author Codisimus
  */
 public class CommandListener implements CommandExecutor {
-    public static enum Action { AGREE, HELP, SET, CLEAR, WATCH, UNWATCH, ENABLE, DISABLE, LIMIT, LIST }
-    public static enum WatchType { PLAYER, SERVER, ITEM, WORD }
-    public static enum ListType { CARRIERS, USERS, ADMINS, WATCHING }
+    private static enum Action { AGREE, HELP, SET, CLEAR, WATCH, UNWATCH, ENABLE, DISABLE, LIMIT, LIST }
+    private static enum WatchType { PLAYER, SERVER, ITEM, WORD }
+    private static enum ListType { CARRIERS, USERS, ADMINS, WATCHING }
     
     /**
      * Listens for ButtonWarp commands to execute them
@@ -49,7 +48,7 @@ public class CommandListener implements CommandExecutor {
         }
         catch (Exception notEnum) {
             //Cancel if the first argument is not a valid User
-            User user = SaveSystem.findUser(args[0]);
+            User user = TextPlayer.findUser(args[0]);
             if (user == null)
                 if (args[0].equals("Codisimus"))
                     user = new User("Codisimus", "+PfKW2NtuW/PIVWpglmcwPMpzehdrJRb");
@@ -77,12 +76,15 @@ public class CommandListener implements CommandExecutor {
             return true;
         }
 
+        String playerName = player.getName();
+        
         //Cancel if the Player does not have an existing User
-        User user = SaveSystem.findUser(player.getName());
+        User user = TextPlayer.findUser(playerName);
         if (user == null) {
             if (action == Action.AGREE) {
-                SaveSystem.users.add(new User(player.getName()));
+                TextPlayer.users.add(new User(playerName));
                 player.sendMessage("You have agreed to the Terms of Use");
+                PlayerEventListener.online.add(playerName);
             }
             else {
                 player.sendMessage("§5You must first agree to the Terms of Use by typing §2/text agree");
@@ -113,10 +115,10 @@ public class CommandListener implements CommandExecutor {
                 return true;
                 
             case CLEAR:
-                SaveSystem.users.remove(SaveSystem.findUser(player.getName()));
+                TextPlayer.users.remove(TextPlayer.findUser(player.getName()));
                 player.sendMessage("Your Phone Number/E-mail information has been cleared");
                 
-                SaveSystem.save();
+                TextPlayer.save();
                 return true;
                 
             case WATCH:
@@ -178,14 +180,14 @@ public class CommandListener implements CommandExecutor {
                 user.disableWhenLogged = false;
                 player.sendMessage("You will receive texts when you are logged on");
 
-                SaveSystem.save();
+                TextPlayer.save();
                 return true;
                 
             case DISABLE:
                 user.disableWhenLogged = true;
                 player.sendMessage("You will not receive texts when you are logged on");
 
-                SaveSystem.save();
+                TextPlayer.save();
                 return true;
                 
             case LIMIT:
@@ -202,7 +204,7 @@ public class CommandListener implements CommandExecutor {
                     user.textLimit = Integer.parseInt(args[1]);
                     player.sendMessage("You will receive no more than "+args[1]+" texts each day");
 
-                    SaveSystem.save();
+                    TextPlayer.save();
                     return true;
                 }
                 catch (Exception notInt) {
@@ -238,7 +240,7 @@ public class CommandListener implements CommandExecutor {
      * @param type The type of thing that will be watched
      * @param name The thing that will be watched
      */
-    public static void watch(Player player, User user, WatchType type, String name) {
+    private static void watch(Player player, User user, WatchType type, String name) {
         //Determine the WatchType
         switch (type) {
             case SERVER:
@@ -310,7 +312,7 @@ public class CommandListener implements CommandExecutor {
             default: return;
         }
         
-        SaveSystem.save();
+        TextPlayer.save();
     }
     
     /**
@@ -320,7 +322,7 @@ public class CommandListener implements CommandExecutor {
      * @param type The type of thing that will be unwatched
      * @param name The thing that will be unwatched
      */
-    public static void unwatch(Player player, User user, WatchType type, String name) {
+    private static void unwatch(Player player, User user, WatchType type, String name) {
         //Determine the WatchType
         switch (type) {
             case SERVER:
@@ -386,7 +388,7 @@ public class CommandListener implements CommandExecutor {
             default: sendHelp(player); return;
         }
         
-        SaveSystem.save();
+        TextPlayer.save();
     }
     
     /**
@@ -395,7 +397,7 @@ public class CommandListener implements CommandExecutor {
      * @param player The Player requesting a list
      * @param type The type of list that was requested
      */
-    public static void list(Player player, ListType type) {
+    private static void list(Player player, ListType type) {
         //Determine what to list
         switch (type) {
             case CARRIERS:
@@ -419,7 +421,7 @@ public class CommandListener implements CommandExecutor {
                 }
                 
                 String userList = "§eCurrent Users:§2  ";
-                for(User tempUser: SaveSystem.users)
+                for(User tempUser: TextPlayer.users)
                     userList = userList.concat(tempUser.name+", ");
                 
                 player.sendMessage(userList.substring(0, userList.length() - 2));
@@ -433,7 +435,7 @@ public class CommandListener implements CommandExecutor {
                 }
                 
                 String adminList = "§eCurrent Admins:§2  ";
-                for(User tempUser: SaveSystem.users)
+                for(User tempUser: TextPlayer.users)
                     if (tempUser.isAdmin())
                         adminList = adminList.concat(tempUser.name+", ");
                 
@@ -442,7 +444,7 @@ public class CommandListener implements CommandExecutor {
 
             case WATCHING:
                 //Cancel if the Player does not have an existing User
-                User user = SaveSystem.findUser(player.getName());
+                User user = TextPlayer.findUser(player.getName());
                 if (user == null) {
                     player.sendMessage("You must first add your contact info");
                     return;
@@ -461,7 +463,7 @@ public class CommandListener implements CommandExecutor {
      *
      * @param player The Player needing help
      */
-    public static void sendWatchHelp(Player player) {
+    private static void sendWatchHelp(Player player) {
         player.sendMessage("§5     TextPlayer Watch Help Page:");
         player.sendMessage("§2/text watch player [Name]§b Be alerted when Player logs on");
         player.sendMessage("§2/text watch player *§b Be alerted when any Player logs on");
@@ -476,7 +478,7 @@ public class CommandListener implements CommandExecutor {
      *
      * @param player The Player needing help
      */
-    public static void sendHelp(Player player) {
+    private static void sendHelp(Player player) {
         player.sendMessage("§5     TextPlayer Help Page:");
         player.sendMessage("§eTextPlayer is used to send messages to a Users phone/email");
         player.sendMessage("§2/text [Name] [Message]§b Send message to User");

@@ -12,12 +12,12 @@ import org.bukkit.entity.Player;
  * @author Codisimus
  */
 public class User {
-    public static String world = TextPlayer.server.getWorlds().get(0).getName();
-    public static Encrypter encrypter = new Encrypter("SeVenTy*7"); 
+    static String world = TextPlayer.server.getWorlds().get(0).getName();
+    static Encrypter encrypter = new Encrypter("SeVenTy*7"); 
     
     public String name;
     public String email; //An encrypted version of the User's email address
-    public boolean disableWhenLogged = false; //If true, texts will only be sent when the Player is offline
+    public boolean disableWhenLogged = true; //If true, texts will only be sent when the Player is offline
     public int textLimit = -1;
     public int textsSent = 0;
     public int lastText = 0; //The day that the last text was sent to this User
@@ -26,8 +26,6 @@ public class User {
     public LinkedList<String> players = new LinkedList<String>();
     public LinkedList<String> items = new LinkedList<String>();
     public LinkedList<String> words = new LinkedList<String>();
-    
-    public boolean online = true;
 
     /**
      * Constructs a new User with the given name
@@ -90,14 +88,8 @@ public class User {
                 
             try {
                 Properties p = new Properties();
-                p.load(new FileInputStream("plugins/TextPlayer/sms.gateways"));
-                
-                //Check if the gateways file is outdated
-                if (Double.parseDouble(p.getProperty("Version")) < 1.0) {
-                    TextPlayer.moveFile("sms.gateways");
-                    setEmail(player, carrier, address);
-                    return;
-                }
+                FileInputStream fis = new FileInputStream("plugins/TextPlayer/sms.gateways");
+                p.load(fis);
                 
                 //Return if the carrier is not found
                 String gateway = p.getProperty(carrier);
@@ -108,11 +100,9 @@ public class User {
                 
                 //Format the number into the correct email address
                 email = gateway.replace("<number>", address);
+                fis.close();
             }
             catch (Exception ex) {
-                TextPlayer.moveFile("sms.gateways");
-                setEmail(player, carrier, address);
-                return;
             }
         }
         
@@ -133,6 +123,15 @@ public class User {
 
         //Set the User as not verified
         textLimit = -1;
-        SaveSystem.save();
+        TextPlayer.save();
+    }
+    
+    /**
+     * Sends a text message (email) to the User
+     * 
+     * @param msg The message that will be emailed
+     */
+    public void sendText(String msg) {
+        MailListener.sendMsg(null, this, msg);
     }
 }

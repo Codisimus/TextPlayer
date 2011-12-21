@@ -1,6 +1,5 @@
 package com.codisimus.plugins.textplayer.listeners;
 
-import com.codisimus.plugins.textplayer.SaveSystem;
 import com.codisimus.plugins.textplayer.TextPlayer;
 import com.codisimus.plugins.textplayer.User;
 import java.util.LinkedList;
@@ -15,7 +14,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
  * @author Codisimus
  */
 public class PlayerEventListener extends PlayerListener {
-    LinkedList<String> online = new LinkedList<String>();
+    static LinkedList<String> online = new LinkedList<String>();
 
     /**
      * Sends alerts when Players log off
@@ -46,7 +45,7 @@ public class PlayerEventListener extends PlayerListener {
                 online.remove(logged);
                 
                 //Send an alert to each Player watching the Player who logged
-                for (User user: SaveSystem.users)
+                for (User user: TextPlayer.users)
                     if ((user.players.contains("*") || user.players.contains(logged))
                             && !user.name.equals(logged))
                         MailListener.sendMsg(null, user, logged+" has logged off");
@@ -70,7 +69,7 @@ public class PlayerEventListener extends PlayerListener {
         online.add(logged);
         
         //Send an alert to each Player watching the Player who logged
-        for (User user: SaveSystem.users)
+        for (User user: TextPlayer.users)
             if ((user.players.contains("*") || user.players.contains(logged))
                     && !user.name.equals(logged))
                 MailListener.sendMsg(null, user, logged+" has logged on");
@@ -87,7 +86,7 @@ public class PlayerEventListener extends PlayerListener {
         String player = event.getPlayer().getName();
         
         //Send an alert to each Player that is watching a word that was spoken
-        for (User user: SaveSystem.users)
+        for (User user: TextPlayer.users)
             if (user.words.contains(msg) && !user.name.equals(player))
                 MailListener.sendMsg(null, user, event.getPlayer().getName()+": "+msg);
     }
