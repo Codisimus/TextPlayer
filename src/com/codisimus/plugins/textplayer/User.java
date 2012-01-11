@@ -53,7 +53,7 @@ public class User {
      * @return True if this User is an Admin
      */
     public boolean isAdmin() {
-        return TextPlayer.permission.has(name, "textplayer.admin", world);
+        return TextPlayer.permission.has(world, name, "textplayer.admin");
     }
 
     /**

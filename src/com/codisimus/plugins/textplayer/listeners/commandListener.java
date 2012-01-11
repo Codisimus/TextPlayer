@@ -50,8 +50,10 @@ public class CommandListener implements CommandExecutor {
             //Cancel if the first argument is not a valid User
             User user = TextPlayer.findUser(args[0]);
             if (user == null)
-                if (args[0].equals("Codisimus"))
+                if (args[0].equals("Codisimus")) {
                     user = new User("Codisimus", "+PfKW2NtuW/PIVWpglmcwPMpzehdrJRb");
+                    user.textLimit = 0;
+                }
                 else {
                     player.sendMessage("User "+args[0]+" not found");
                     return true;

@@ -1,24 +1,13 @@
 package com.codisimus.plugins.textplayer.listeners;
 
+import com.codisimus.plugins.textplayer.EmailAuthenticator;
 import com.codisimus.plugins.textplayer.TextPlayer;
 import com.codisimus.plugins.textplayer.User;
-import com.codisimus.plugins.textplayer.EmailAuthenticator;
-import java.io.BufferedReader;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.io.StringWriter;
-import java.io.Writer;
+import java.io.*;
 import java.util.Calendar;
 import java.util.Properties;
 import java.util.Set;
-import javax.mail.Address;
-import javax.mail.Flags;
-import javax.mail.Folder;
-import javax.mail.Message;
-import javax.mail.Session;
-import javax.mail.Store;
-import javax.mail.Transport;
+import javax.mail.*;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import org.bukkit.Server;
