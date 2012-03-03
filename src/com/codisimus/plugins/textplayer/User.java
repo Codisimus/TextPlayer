@@ -1,6 +1,5 @@
 package com.codisimus.plugins.textplayer;
 
-import com.codisimus.plugins.textplayer.listeners.MailListener;
 import java.io.FileInputStream;
 import java.util.LinkedList;
 import java.util.Properties;
@@ -119,7 +118,7 @@ public class User {
         
         //Send confirmation text
         player.sendMessage("Sending Confirmation Text...");
-        MailListener.sendMsg(player, this, "Reply 'enable' to link this number to "+name);
+        TextPlayerMailer.sendMsg(player, this, "Reply 'enable' to link this number to "+name);
 
         //Set the User as not verified
         textLimit = -1;
@@ -132,6 +131,6 @@ public class User {
      * @param msg The message that will be emailed
      */
     public void sendText(String msg) {
-        MailListener.sendMsg(null, this, msg);
+        TextPlayerMailer.sendMsg(null, this, msg);
     }
 }
