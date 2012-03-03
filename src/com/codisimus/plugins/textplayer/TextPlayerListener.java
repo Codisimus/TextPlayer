@@ -101,6 +101,9 @@ public class TextPlayerListener implements Listener {
      */
     @EventHandler (priority = EventPriority.MONITOR)
     public void onBlockPlace (BlockPlaceEvent event) {
+        if (event.isCancelled())
+            return;
+        
         //Cancel if the event was not placing TNT
         if (event.getBlock().getTypeId() != 46)
             return;
@@ -120,6 +123,9 @@ public class TextPlayerListener implements Listener {
      */
     @EventHandler (priority = EventPriority.MONITOR)
     public void onBlockIgnite (BlockIgniteEvent event) {
+        if (event.isCancelled())
+            return;
+        
         //Cancel if the event was not caused by a Player
         Player player = event.getPlayer();
         if (player == null)
