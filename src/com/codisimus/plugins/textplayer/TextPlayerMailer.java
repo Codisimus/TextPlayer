@@ -47,7 +47,8 @@ public class TextPlayerMailer {
             @Override
             public void run() {
                 //Cancel if the User is online and has disabled when logged set to true
-                if (user.disableWhenLogged && TextPlayerListener.online.contains(user.name)) {
+                if (user.disableWhenLogged && TextPlayerListener.online.contains(user.name)
+                        && !text.startsWith("[TextPlayer] ")) {
                     //Notify the Server log if set to in the config
                     if (notify)
                         System.out.println("[TextPlayer] User is currently online");
@@ -60,8 +61,7 @@ public class TextPlayerMailer {
                 }
       
                 //Cancel if the User is not verified
-                if (user.textLimit < 0 && !(text.startsWith("Reply 'enable' to link") ||
-                        text.startsWith("Texts to this number have been disabled"))) {
+                if (user.textLimit < 0 && !text.startsWith("[TextPlayer] ")) {
                     //Notify the Server log if set to in the config
                     if (notify)
                         System.out.println("[TextPlayer] User's Number/Email has not been verified");
@@ -219,7 +219,7 @@ public class TextPlayerMailer {
                                                             
                                                             //Display debug information in the Server log if set to in the config
                                                             if (debug)
-                                                                System.out.println("[TextPlayer](Debug) Unkown address: "+message.getFrom());
+                                                                System.out.println("[TextPlayer](Debug) Unknown address: "+message.getFrom());
                                                         }
                                                         else {
                                                             String msg = cleanUp(getMsg(message));
@@ -235,20 +235,20 @@ public class TextPlayerMailer {
                                                                     //Set the User as verified
                                                                     user.textLimit = 0;
                                                                     TextPlayer.save();
-                                                                    sendMsg(null, user, "Number/Email linked to "+user.name);
+                                                                    sendMsg(null, user, "[TextPlayer] Number/Email linked to "+user.name);
                                                                 }
                                                                 else
-                                                                    sendMsg(null, user, "Reply 'enable' to link this number to "+user.name);
+                                                                    sendMsg(null, user, "[TextPlayer] Reply 'enable' to link this number to "+user.name);
                                                             else
                                                                 try {
                                                                     Action action = Action.valueOf(split[0].toUpperCase());
                                                                     switch (action) {
                                                                         case ENABLE:
-                                                                            sendMsg(null, user, "Number/Email linked to "+user.name);
+                                                                            sendMsg(null, user, "[TextPlayer] Number/Email linked to "+user.name);
                                                                             break;
 
                                                                         case DISABLE: //Set the User as not verified
-                                                                            sendMsg(null, user, "Texts to this number have been disabled, To receive texts reply 'enable'");
+                                                                            sendMsg(null, user, "[TextPlayer] Texts to this number have been disabled, To receive texts reply 'enable'");
                                                                             user.textLimit = -1;
                                                                             TextPlayer.save();
                                                                             break;

@@ -115,7 +115,7 @@ public class TextPlayerCommand implements CommandExecutor {
                 return true;
                 
             case CLEAR:
-                TextPlayer.users.remove(TextPlayer.findUser(player.getName()));
+                TextPlayer.users.remove(player.getName());
                 player.sendMessage("Your Phone Number/E-mail information has been cleared");
                 
                 TextPlayer.save();

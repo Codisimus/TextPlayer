@@ -5,8 +5,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Properties;
-import java.util.jar.JarFile;
-import java.util.zip.ZipEntry;
 import net.milkbowl.vault.economy.Economy;
 import net.milkbowl.vault.permission.Permission;
 import org.bukkit.Server;
@@ -54,8 +52,15 @@ public class TextPlayer extends JavaPlugin {
         
         File file = new File("lib/mail.jar");
         if (!file.exists()) {
-            System.err.println("[TextPlayer] Moving Files... Please Reload Server");
+            System.err.println("[TextPlayer] Copying library files from jar... Reloading Plugin");
+            dir = new File("lib");
+            if (!dir.isDirectory())
+                dir.mkdir();
             this.saveResource("mail.jar", true);
+            new File(dataFolder+"/mail.jar").renameTo(file);
+            pm.disablePlugin(this);
+            pm.enablePlugin(this);
+            return;
         }
 
         file = new File(dataFolder+"/sms.gateways");
@@ -114,6 +119,9 @@ public class TextPlayer extends JavaPlugin {
         getCommand(TextPlayerCommand.command).setExecutor(new TextPlayerCommand());
         
         System.out.println("TextPlayer "+this.getDescription().getVersion()+" is enabled!");
+        
+        for (Player player: server.getOnlinePlayers())
+            TextPlayerListener.online.add(player.getName());
 
         for (User user: users.values())
             if (user.watchingServer)

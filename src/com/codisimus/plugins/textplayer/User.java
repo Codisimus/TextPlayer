@@ -118,7 +118,7 @@ public class User {
         
         //Send confirmation text
         player.sendMessage("Sending Confirmation Text...");
-        TextPlayerMailer.sendMsg(player, this, "Reply 'enable' to link this number to "+name);
+        TextPlayerMailer.sendMsg(player, this, "[TextPlayer] Reply 'enable' to link this number to "+name);
 
         //Set the User as not verified
         textLimit = -1;

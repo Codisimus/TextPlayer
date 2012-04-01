@@ -1,6 +1,6 @@
 name: TextPlayer
 main: com.codisimus.plugins.textplayer.TextPlayer
-version: 1.3.0
+version: 1.4.1
 author: Codisimus
 website: www.codisimus.com
 description: Receive text alerts to your phone
