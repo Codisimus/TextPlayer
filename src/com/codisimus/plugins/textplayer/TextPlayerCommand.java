@@ -11,7 +11,7 @@ import org.bukkit.entity.Player;
  * @author Codisimus
  */
 public class TextPlayerCommand implements CommandExecutor {
-    private static enum Action { AGREE, HELP, SET, CLEAR, WATCH, UNWATCH, ENABLE, DISABLE, LIMIT, LIST }
+    private static enum Action { AGREE, HELP, CHECK, SET, CLEAR, WATCH, UNWATCH, ENABLE, DISABLE, LIMIT, LIST }
     private static enum WatchType { PLAYER, SERVER, ITEM, WORD }
     private static enum ListType { CARRIERS, USERS, ADMINS, WATCHING }
     static String command;
@@ -122,7 +122,8 @@ public class TextPlayerCommand implements CommandExecutor {
                 return true;
                 
             case WATCH:
-                if (args.length <= 2) {
+                int length = args.length;
+                if (length < 2) {
                     sendWatchHelp(player);
                     return true;
                 }
@@ -133,48 +134,62 @@ public class TextPlayerCommand implements CommandExecutor {
                     return true;
                 }
                 
-                switch (args.length) {
-                    case 2:
-                        if (!args[1].equals("server"))
-                            break;
-                        
-                        watch(player, user, WatchType.SERVER, null);
-                        return true;
-                    
-                    case 3:
-                        WatchType watchType;
-
-                        try {
-                            watchType = WatchType.valueOf(args[1].toUpperCase());
-                        }
-                        catch (Exception notEnum) {
-                            break;
-                        }
-                        
-                        watch(player, user, watchType, args[2]);
-                        return true;
-                        
-                    default: break;
+                WatchType watchType;
+                String string = null;
+                
+                try {
+                    watchType = WatchType.valueOf(args[1].toUpperCase());
+                }
+                catch (Exception notEnum) {
+                    sendWatchHelp(player);
+                    return true;
                 }
                 
-                sendWatchHelp(player);
+                if (watchType != WatchType.SERVER)
+                    if (length < 3) {
+                        sendWatchHelp(player);
+                        return true;
+                    }
+                    else
+                        string = args[2];
+                
+                watch(player, user, watchType, string);
                 return true;
                 
             case UNWATCH:
-                switch (args.length) {
-                    case 2:
-                        if (!args[1].equals("server"))
-                            break;
-                        
-                        unwatch(player, user, WatchType.SERVER, null);
-                        return true;
-                    
-                    case 3: unwatch(player, user, WatchType.valueOf(args[1].toUpperCase()), args[2]); return true;
-                        
-                    default: break;
+                int l = args.length;
+                if (l < 2) {
+                    sendWatchHelp(player);
+                    return true;
                 }
                 
-                break;
+                //Cancel if the Player does not have the needed permission
+                if (!TextPlayer.hasPermission(player, "watch."+args[1])) {
+                    player.sendMessage("You do not have permission to do that");
+                    return true;
+                }
+                
+                WatchType type;
+                String name = null;
+                
+                try {
+                    type = WatchType.valueOf(args[1].toUpperCase());
+                }
+                catch (Exception notEnum) {
+                    sendWatchHelp(player);
+                    return true;
+                }
+                
+                if (type != WatchType.SERVER)
+                    if (l < 3) {
+                        sendWatchHelp(player);
+                        return true;
+                    }
+                    else
+                        name = args[2];
+                
+                unwatch(player, user, type, name);
+                return true;
                 
             case ENABLE:
                 user.disableWhenLogged = false;
@@ -223,6 +238,15 @@ public class TextPlayerCommand implements CommandExecutor {
                 catch (Exception notEnum) {
                     break;
                 }
+                
+            case CHECK:
+                //Cancel if the Player does not have the needed permission
+                if (TextPlayer.hasPermission(player, "check"))
+                    TextPlayerMailer.forceCheck(player);
+                else
+                    player.sendMessage("You do not have permission to do that");
+                
+                return true;
                 
             case HELP: break;
                 
@@ -499,5 +523,6 @@ public class TextPlayerCommand implements CommandExecutor {
         player.sendMessage("§2/"+command+" list users§b List current Users");
         player.sendMessage("§2/"+command+" list admins§b List current Admins");
         player.sendMessage("§2/"+command+" list watching§b List what you are watching");
+        player.sendMessage("§2/"+command+" check§b Force the Server to check for new Mail");
     }
 }

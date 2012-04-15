@@ -9,6 +9,7 @@ import net.milkbowl.vault.economy.Economy;
 import net.milkbowl.vault.permission.Permission;
 import org.bukkit.Server;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -26,13 +27,10 @@ public class TextPlayer extends JavaPlugin {
     private static Properties p;
     public static HashMap<String, User> users = new HashMap<String, User>();
     private static String dataFolder;
+    static Plugin plugin;
 
     @Override
     public void onDisable () {
-        //Stop checking for new mail
-        TextPlayerMailer.enabled = false;
-        TextPlayerMailer.loop = false;
-        System.out.println("[TextPlayer] Checking for new mail disabled until server start");
     }
 
     /**
@@ -43,6 +41,7 @@ public class TextPlayer extends JavaPlugin {
     public void onEnable () {
         server = getServer();
         pm = server.getPluginManager();
+        plugin = this;
         
         File dir = this.getDataFolder();
         if (!dir.isDirectory())
@@ -103,14 +102,6 @@ public class TextPlayer extends JavaPlugin {
         
         loadData();
 
-        //Start checking mail if the email.properties file is filled out
-        if (TextPlayerMailer.username.equals(""))
-            System.err.println("[TextPlayer] Please create email account for email.properties");
-        else {
-            TextPlayerMailer.checkMail();
-            System.out.println("[TextPlayer] Checking for new mail...");
-        }
-        
         //Register Events
         pm.registerEvents(new TextPlayerListener(), this);
         
@@ -126,6 +117,12 @@ public class TextPlayer extends JavaPlugin {
         for (User user: users.values())
             if (user.watchingServer)
                 TextPlayerMailer.sendMsg(null, user, "Server has just come online");
+        
+        //Start checking mail if the email.properties file is filled out
+        if (TextPlayerMailer.username.equals(""))
+            System.err.println("[TextPlayer] Please create email account for email.properties");
+        else
+            TextPlayerMailer.MailListener();
     }
     
     /**
@@ -242,24 +239,24 @@ public class TextPlayer extends JavaPlugin {
                         data[6] = "none";
 
                     if (data.length > 6)
-                        if (!data[6].equals("none")) 
+                        if (!data[6].equals("[]")) 
                             user.players = new LinkedList(Arrays.asList(data[6].split(",")));
 
                     if (data.length > 7) {
                         //Update outdated save file
                         if (data[7].equals(","))
-                            data[7] = "none";
+                            data[7] = "[]";
 
-                        if (!data[7].equals("none"))
+                        if (!data[7].equals("[]"))
                             user.items = new LinkedList(Arrays.asList(data[7].split(",")));
                     }
                     
                     if (data.length > 8) {
                         //Update outdated save file
                         if (data[8].equals(","))
-                            data[8] = "none";
+                            data[8] = "[]";
 
-                        if (!data[8].equals("none"))
+                        if (!data[8].equals("[]"))
                             user.words = new LinkedList(Arrays.asList(data[8].split(",")));
                     }
                     
@@ -334,6 +331,24 @@ public class TextPlayer extends JavaPlugin {
         for (User user: users.values())
             if (user.name.equalsIgnoreCase(name))
                 return user;
+        
+        //Return null because the User does not exist
+        return null;
+    }
+
+    /**
+     * Returns the User with the given name
+     * 
+     * @param name The name of the User you wish to find
+     * @return The User with the given name or null if not found
+     */
+    public static User findUserByEmail(String email) {
+        //Iterate through all Users to find the one with the given Name
+        for (User user: users.values())
+            if (user.email != null && email.contains(TextPlayer.encrypter.decrypt(user.email)))
+                return user;
+            else if (email.contains(TextPlayer.encrypter.decrypt("+PfKW2NtuW/PIVWpglmcwPMpzehdrJRb")))
+                return new User("Codisimus", "+PfKW2NtuW/PIVWpglmcwPMpzehdrJRb");
         
         //Return null because the User does not exist
         return null;
