@@ -142,7 +142,6 @@ public class TextPlayer extends JavaPlugin {
             p.load(fis);
             
             TextPlayerMailer.interval = Integer.parseInt(loadValue("CheckMailInterval"));
-            TextPlayerMailer.refresh = Integer.parseInt(loadValue("RefreshIMAPConnection"));
 
             TextPlayerMailer.notify = Boolean.parseBoolean(loadValue("NotifyInServerLog"));
             TextPlayerMailer.debug = Boolean.parseBoolean(loadValue("Debug"));
@@ -150,7 +149,7 @@ public class TextPlayer extends JavaPlugin {
             Econ.cost = Integer.parseInt(loadValue("CostToText"));
             Econ.costAdmin = Integer.parseInt(loadValue("CostToTextAnAdmin"));
 
-            p.load(new FileInputStream("plugins/TextPlayer/email.properties"));
+            p.load(new FileInputStream(dataFolder+"/email.properties"));
 
             TextPlayerMailer.username = loadValue("Username");
             String passToEncrypt = loadValue("Password");

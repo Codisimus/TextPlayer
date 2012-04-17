@@ -28,7 +28,6 @@ public class TextPlayerMailer {
     public static String username;
     public static String pass;
     public static int interval;
-    public static int refresh;
     public static BASE64Decoder decoder = new BASE64Decoder();
     private static Session session;
     private static Store store;
