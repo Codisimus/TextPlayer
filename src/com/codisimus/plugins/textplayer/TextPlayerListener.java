@@ -90,8 +90,12 @@ public class TextPlayerListener implements Listener {
         
         //Send an alert to each Player that is watching a word that was spoken
         for (User user: TextPlayer.users.values())
-            if (user.words.contains(msg) && !user.name.equals(player))
-                TextPlayerMailer.sendMsg(null, user, event.getPlayer().getName()+": "+msg);
+            if (!user.name.equals(player))
+                for (String word: user.words)
+                    if (msg.contains(word)) {
+                        TextPlayerMailer.sendMsg(null, user, event.getPlayer().getName()+": "+msg);
+                        break;
+                    }
     }
     
     /**
