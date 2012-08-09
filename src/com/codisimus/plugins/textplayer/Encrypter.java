@@ -38,8 +38,8 @@ public class Encrypter {
             
             ecipher.init(Cipher.ENCRYPT_MODE, key, paramSpec);
             dcipher.init(Cipher.DECRYPT_MODE, key, paramSpec);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
+            System.err.println("[TextPlayer] Failed to construct Encrypter");
         }
     }
 
@@ -55,11 +55,9 @@ public class Encrypter {
             byte[] enc = ecipher.doFinal(utf8);
             
             return new sun.misc.BASE64Encoder().encode(enc);
+        } catch (Exception e) {
+            return null;
         }
-        catch (Exception e) {
-        }
-        
-        return null;
     }
 
     /**
@@ -76,8 +74,7 @@ public class Encrypter {
             return new String(utf8, "UTF8");
         }
         catch (Exception e) {
+            return null;
         }
-        
-        return null;
     }
 }

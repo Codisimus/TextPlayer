@@ -27,34 +27,29 @@ public class TextPlayerListener implements Listener {
      */
     @EventHandler (priority = EventPriority.MONITOR)
     public void onPlayerQuit(final PlayerQuitEvent event) {
-        //Start a new Thread
-        Thread check = new Thread() {
+        final String logged = event.getPlayer().getName();
+
+        //Execute in one minute
+        TextPlayer.server.getScheduler().scheduleAsyncDelayedTask(TextPlayer.plugin, new Runnable() {
             @Override
             public void run() {
-                String logged = event.getPlayer().getName();
-                
-                //Wait for one minute
-                try {
-                    Thread.currentThread().sleep(60000);
-                }
-                catch (Exception e) {
-                }
-
                 //Return if the Player logged back on
-                if (TextPlayer.server.getPlayer(logged) != null)
+                if (TextPlayer.server.getPlayer(logged) != null) {
                     return;
+                }
 
                 //Set the User as offline
                 online.remove(logged);
-                
+
                 //Send an alert to each Player watching the Player who logged
-                for (User user: TextPlayer.getUsers())
-                    if ((user.players.contains("*") || user.players.contains(logged))
-                            && !user.name.equals(logged))
+                for (User user: TextPlayer.getUsers()) {
+                    if ((user.players.contains("*") || user.players.contains(logged.toLowerCase()))
+                            && !user.name.equals(logged)) {
                         TextPlayerMailer.sendMsg(null, user, logged+" has logged off");
+                    }
+                }
             }
-        };
-        check.start();
+        }, 1200L);
     }
     
     /**
@@ -66,16 +61,19 @@ public class TextPlayerListener implements Listener {
     public void onPlayerJoin(PlayerJoinEvent event) {
         //Return if the Player was online less than a minute ago
         String logged = event.getPlayer().getName();
-        if (online.contains(logged))
+        if (online.contains(logged)) {
             return;
+        }
         
         online.add(logged);
         
         //Send an alert to each Player watching the Player who logged
-        for (User user: TextPlayer.getUsers())
-            if ((user.players.contains("*") || user.players.contains(logged))
-                    && !user.name.equals(logged))
+        for (User user: TextPlayer.getUsers()) {
+            if ((user.players.contains("*") || user.players.contains(logged.toLowerCase()))
+                    && !user.name.equals(logged)) {
                 TextPlayerMailer.sendMsg(null, user, logged+" has logged on");
+            }
+        }
     }
 
     /**
@@ -89,13 +87,16 @@ public class TextPlayerListener implements Listener {
         String player = event.getPlayer().getName();
         
         //Send an alert to each Player that is watching a word that was spoken
-        for (User user: TextPlayer.getUsers())
-            if (!user.name.equals(player))
-                for (String word: user.words)
+        for (User user: TextPlayer.getUsers()) {
+            if (!user.name.equals(player)) {
+                for (String word: user.words) {
                     if (msg.contains(word)) {
                         TextPlayerMailer.sendMsg(null, user, event.getPlayer().getName()+": "+msg);
                         break;
                     }
+                }
+            }
+        }
     }
     
     /**
@@ -105,19 +106,23 @@ public class TextPlayerListener implements Listener {
      */
     @EventHandler (priority = EventPriority.MONITOR)
     public void onBlockPlace(BlockPlaceEvent event) {
-        if (event.isCancelled())
+        if (event.isCancelled()) {
             return;
+        }
         
         //Cancel if the event was not placing TNT
-        if (event.getBlock().getTypeId() != 46)
+        if (event.getBlock().getTypeId() != 46) {
             return;
+        }
         
         String player = event.getPlayer().getName();
         
         //Send an alert to each Player watching TNT
-        for(User user: TextPlayer.getUsers())
-            if (user.items.contains("tnt"))
+        for (User user: TextPlayer.getUsers()) {
+            if (user.items.contains("tnt")) {
                 TextPlayerMailer.sendMsg(null, user, player+" has placed TNT");
+            }
+        }
     }
 
     /**
@@ -127,17 +132,21 @@ public class TextPlayerListener implements Listener {
      */
     @EventHandler (priority = EventPriority.MONITOR)
     public void onBlockIgnite(BlockIgniteEvent event) {
-        if (event.isCancelled())
+        if (event.isCancelled()) {
             return;
+        }
         
         //Cancel if the event was not caused by a Player
         Player player = event.getPlayer();
-        if (player == null)
-           return;
+        if (player == null) {
+            return;
+        }
         
         //Send an alert to each Player watching fire
-        for(User user: TextPlayer.getUsers())
-            if (user.items.contains("fire"))
+        for (User user: TextPlayer.getUsers()) {
+            if (user.items.contains("fire")) {
                 TextPlayerMailer.sendMsg(null, user, player.getName()+" has lit a fire");
+            }
+        }
     }
 }

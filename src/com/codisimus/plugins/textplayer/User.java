@@ -67,21 +67,20 @@ public class User {
     public void setEmail(Player player, String carrierName, String address) {
         String old = email;
         
-        if (carrierName.equals("email"))
+        if (carrierName.equals("email")) {
             //Verify the format of the given email address
-            if (address.matches("^[_A-Za-z0-9-]+(\\.[_A-Za-z0-9-]+)*@[A-Za-z0-9]+(\\.[A-Za-z0-9]+)*(\\.[A-Za-z]{2,})$"))
+            if (address.matches("^[_A-Za-z0-9-]+(\\.[_A-Za-z0-9-]+)*@[A-Za-z0-9]+(\\.[A-Za-z0-9]+)*(\\.[A-Za-z]{2,})$")) {
                 email = address;
-            else {
+            } else {
                 player.sendMessage("§4Invalid e-mail address");
                 return;
             }
-        else {
+        } else {
             //Return if the carrier is not found
             Carrier carrier;
             try {
                 carrier = Carrier.valueOf(carrierName.toLowerCase());
-            }
-            catch (IllegalArgumentException notSupported) {
+            } catch (IllegalArgumentException notSupported) {
                 player.sendMessage("§4Carrier §6"+carrierName+" §4not supported, type §2/"+TextPlayerCommand.command+
                         " list carriers§f for a list of supported Carriers");
                 return;
@@ -92,9 +91,9 @@ public class User {
 
             //Return if the number is not 10 digits
             switch (address.length()) {
-                case 10: break;
-                case 11: address = address.substring(1); break; //Throw out the included country code
-                default: player.sendMessage("§4Invalid number format§f: §5Correct format is §6123-456-7890"); return;
+            case 10: break;
+            case 11: address = address.substring(1); break; //Throw out the included country code
+            default: player.sendMessage("§4Invalid number format§f: §5Correct format is §6123-456-7890"); return;
             }
 
             //Format the email address with the given number and carrier

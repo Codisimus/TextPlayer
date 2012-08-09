@@ -27,8 +27,9 @@ public class TextPlayerCommandSender implements CommandSender {
 
     @Override
     public void sendMessage(String[] strings) {
-        for (String string: strings)
+        for (String string: strings) {
             sendMessage(string);
+        }
     }
 
     @Override

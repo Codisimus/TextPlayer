@@ -35,12 +35,14 @@ public class TextPlayerMailer {
 
     public static void sendMsg(final Player player, final User user, final String text) {
         //Notify the Server log if set to in the config
-        if (notify)
+        if (notify) {
             System.out.println("[TextPlayer] Sending Message...");
+        }
         
         //Notify the Player if there is one
-        if (player != null)
+        if (player != null) {
             player.sendMessage("§5Sending Message...");
+        }
         
         //Start a new Thread
         TextPlayer.server.getScheduler().scheduleAsyncDelayedTask(TextPlayer.plugin, new Runnable() {
@@ -49,12 +51,14 @@ public class TextPlayerMailer {
                 //Cancel if the User has not set their E-mail address
                 if (user.email.isEmpty()) {
                     //Notify the Server log if set to in the config
-                    if (notify)
+                    if (notify) {
                         System.out.println("[TextPlayer] User has not set their Number/E-mail");
+                    }
 
                     //Notify the Player if there is one
-                    if (player != null)
+                    if (player != null) {
                         player.sendMessage("§4User has not set their Number/E-mail");
+                    }
 
                     return;
                 }
@@ -63,12 +67,14 @@ public class TextPlayerMailer {
                 if (user.disableWhenLogged && TextPlayerListener.online.contains(user.name)
                         && !text.startsWith("[TextPlayer] ")) {
                     //Notify the Server log if set to in the config
-                    if (notify)
+                    if (notify) {
                         System.out.println("[TextPlayer] User is currently online");
+                    }
 
                     //Notify the Player if there is one
-                    if (player != null)
+                    if (player != null) {
                         player.sendMessage("§4User is currently online");
+                    }
 
                     return;
                 }
@@ -76,12 +82,14 @@ public class TextPlayerMailer {
                 //Cancel if the User is not verified
                 if (user.textLimit < 0 && !text.startsWith("[TextPlayer] ")) {
                     //Notify the Server log if set to in the config
-                    if (notify)
+                    if (notify) {
                         System.out.println("[TextPlayer] User's Number/Email has not been verified");
+                    }
 
                     //Notify the Player if there is one
-                    if (player != null)
+                    if (player != null) {
                         player.sendMessage("§4User's Number/Email has not been verified");
+                    }
 
                     return;
                 }
@@ -95,32 +103,34 @@ public class TextPlayerMailer {
                     if (user.lastText != day) {
                         user.lastText = day;
                         user.textsSent = 0;
-                    }
-                    else
+                    } else {
                         //Cancel if the User maxed out their text limit
                         if (user.textsSent >= user.textLimit) {
                             //Notify the Server log if set to in the config
-                            if (notify)
+                            if (notify) {
                                 System.out.println("[TextPlayer] User maxed out their text limit");
+                            }
 
                             //Notify the Player if there is one
-                            if (player != null)
+                            if (player != null) {
                                 player.sendMessage("§4User maxed out their text limit");
+                            }
 
                             return;
                         }
+                    }
 
                     //Notify the User if there is less than 2 messages remaining
                     switch (user.textLimit - user.textsSent++) {
-                        case 0: msg = text.concat(" *last txt 4 2day"); break;
-                        case 1: msg = text.concat(" *1 txt left 4 2day"); break;
-                        default: msg = text; break;
+                    case 0: msg = text.concat(" *last txt 4 2day"); break;
+                    case 1: msg = text.concat(" *1 txt left 4 2day"); break;
+                    default: msg = text; break;
                     }
 
                     user.save();
-                }
-                else
+                } else {
                     msg = text;
+                }
 
                 try {
                     //Construct the message to send
@@ -130,27 +140,31 @@ public class TextPlayerMailer {
                     message.setText(msg);
 
                     //Log in to the email account and send the message
-                    if (!transport.isConnected())
+                    if (!transport.isConnected()) {
                         transport.connect(smtphost, smtpport, username, TextPlayer.encrypter.decrypt(pass));
+                    }
                     transport.sendMessage(message, message.getAllRecipients());
                     transport.close();
 
                     //Notify the Server log if set to in the config
-                    if (notify)
+                    if (notify) {
                         System.out.println("[TextPlayer] Message Sent!");
+                    }
 
                     //Notify the Player if there is one
-                    if (player != null)
+                    if (player != null) {
                         player.sendMessage("§5Message Sent!");
-                }
-                catch (Exception sendFailed) {
+                    }
+                } catch (Exception sendFailed) {
                     //Notify the Server log if set to in the config
-                    if (notify)
+                    if (notify) {
                         System.out.println("[TextPlayer] Send Failed");
+                    }
 
                     //Notify the Player if there is one
-                    if (player != null)
+                    if (player != null) {
                         player.sendMessage("§4Send Failed");
+                    }
 
                     sendFailed.printStackTrace();
                 }
@@ -162,8 +176,9 @@ public class TextPlayerMailer {
         processing = true;
         try {
             //Log in to the email account and retrieve the inbox
-            if (!store.isConnected())
+            if (!store.isConnected()) {
                 store.connect(username, TextPlayer.encrypter.decrypt(pass));
+            }
             Folder inbox = store.getFolder("INBOX");
             
             //Check if there is new mail
@@ -180,8 +195,9 @@ public class TextPlayerMailer {
 
                             if (user != null) {
                                 //Display debug information in the Server log if set to in the config
-                                if (debug)
+                                if (debug) {
                                     System.out.println("[TextPlayer](Debug) Message received from: "+user.name);
+                                }
 
                                 break;
                             }
@@ -189,137 +205,138 @@ public class TextPlayerMailer {
 
                         if (user == null) {
                             //Notify the Server log if set to in the config
-                            if (notify)
+                            if (notify) {
                                 System.out.println("[TextPlayer] Message from unknown address, Message thrown out");
+                            }
 
                             //Display debug information in the Server log if set to in the config
-                            if (debug)
+                            if (debug) {
                                 System.out.println("[TextPlayer](Debug) Unknown address: "+message.getFrom());
-                        }
-                        else {
+                            }
+                        } else {
                             String msg = getMsg(message);
                             //Display debug information in the Server log if set to in the config
-                            if (debug)
+                            if (debug) {
                                 System.out.println("[TextPlayer](Debug) Message received: "+msg);
+                            }
 
                             msg = cleanUp(msg);
                             //Display debug information in the Server log if set to in the config
-                            if (debug)
+                            if (debug) {
                                 System.out.println("[TextPlayer](Debug) Message after clean-up: "+msg);
+                            }
 
                             String[] split = msg.split(" ");
 
-                            if (user.textLimit == -1)
+                            if (user.textLimit == -1) {
                                 //The User is not verified
                                 if (split[0].equals("enable") || split[0].equals("'enable'")) {
                                     //Set the User as verified
                                     user.textLimit = 0;
                                     user.save();
                                     sendMsg(null, user, "[TextPlayer] Number/Email linked to "+user.name);
-                                }
-                                else
+                                } else {
                                     sendMsg(null, user, "[TextPlayer] Reply 'enable' to link this number to "+user.name);
-                            else
+                                }
+                            } else {
                                 try {
                                     Action action = Action.valueOf(split[0].toUpperCase());
                                     switch (action) {
-                                        case ENABLE:
-                                            sendMsg(null, user, "[TextPlayer] Number/Email linked to "+user.name);
-                                            break;
+                                    case ENABLE:
+                                        sendMsg(null, user, "[TextPlayer] Number/Email linked to "+user.name);
+                                        break;
 
-                                        case DISABLE: //Set the User as not verified
-                                            sendMsg(null, user, "[TextPlayer] Texts to this number have been disabled, To receive texts reply 'enable'");
-                                            user.textLimit = -1;
-                                            user.save();
-                                            break;
+                                    case DISABLE: //Set the User as not verified
+                                        sendMsg(null, user, "[TextPlayer] Texts to this number have been disabled, To receive texts reply 'enable'");
+                                        user.textLimit = -1;
+                                        user.save();
+                                        break;
 
-                                        case PL: //Fall through
-                                        case PLAYERS: //Fall through
-                                        case WHO: //Fall through
-                                        case PLAYERLIST: //Construct a Player count/list to send
-                                            String list = "Player Count: "+TextPlayer.server.getOnlinePlayers().length;
-                                            for (Player player : TextPlayer.server.getOnlinePlayers())
-                                                list = list.concat(", "+player.getName());
+                                    case PL: //Fall through
+                                    case PLAYERS: //Fall through
+                                    case WHO: //Fall through
+                                    case PLAYERLIST: //Construct a Player count/list to send
+                                        String list = "Player Count: "+TextPlayer.server.getOnlinePlayers().length;
+                                        for (Player player : TextPlayer.server.getOnlinePlayers()) {
+                                            list = list.concat(", "+player.getName());
+                                        }
 
-                                            sendMsg(null, user, list);
-                                            break;
+                                        sendMsg(null, user, list);
+                                        break;
 
-                                        case FIND: //Find if a Player is online
-                                            Player foundPlayer = TextPlayer.server.getPlayer(split[1].trim());
-                                            String status = foundPlayer == null ? "online" : "offline";
+                                    case FIND: //Find if a Player is online
+                                        Player foundPlayer = TextPlayer.server.getPlayer(split[1].trim());
+                                        String status = foundPlayer == null ? "online" : "offline";
+                                        sendMsg(null, user, foundPlayer.getName()+" is currently "+status);
+                                        break;
 
-                                            sendMsg(null, user, foundPlayer.getName()+" is currently "+status);
-                                            break;
+                                    case TELL: //Whisper a message to a Player
+                                        Player player = TextPlayer.server.getPlayer(split[1]);
+                                        if (player == null) {
+                                            sendMsg(null, user, player.getName()+" is currently offline");
+                                        }
+                                        else {
+                                            player.sendMessage("§5Text from §6"+user.name+"§f: §2"+
+                                                    msg.substring(split[0].length() + split[1].length() + 1));
+                                        }
 
-                                        case TELL: //Whisper a message to a Player
-                                            Player player = TextPlayer.server.getPlayer(split[1]);
+                                        break;
 
-                                            if (player == null)
-                                                sendMsg(null, user, player.getName()+" is currently offline");
-                                            else
-                                                player.sendMessage("§5Text from §6"+user.name+"§f: §2"+
-                                                        msg.substring(split[0].length() + split[1].length() + 1));
+                                    case TEXT: //Send a message to a User
+                                        User user2 = TextPlayer.findUser(split[1]);
+                                        if (user2 == null) {
+                                            sendMsg(null, user, split[1]+" does not have a TextPlayer account");
+                                        } else {
+                                            sendMsg(null, user, "Text from "+user.name+":"+
+                                                    msg.substring(split[0].length() + split[1].length() + 1));
+                                        }
 
-                                            break;
+                                        break;
 
-                                        case TEXT: //Send a message to a User
-                                            User user2 = TextPlayer.findUser(split[1]);
+                                    case SAY: //Broadcast a message
+                                        TextPlayer.server.broadcastMessage("§5[TextPlayer] "+user.name+":§f"+msg.substring(3));
+                                        break;
 
-                                            if (user2 == null)
-                                                sendMsg(null, user, split[1]+" does not have a TextPlayer account");
-                                            else
-                                                sendMsg(null, user, "Text from "+user.name+":"+
-                                                        msg.substring(split[0].length() + split[1].length() + 1));
-
-                                            break;
-
-                                        case SAY: //Broadcast a message
-                                            TextPlayer.server.broadcastMessage("§5[TextPlayer] "+user.name+":§f"+msg.substring(3));
-                                            break;
-
-                                        default: break;
+                                    default: break;
                                     }
-                                }
-                                catch (Exception e) {
-                                    if (user.isAdmin())
+                                } catch (Exception e) {
+                                    if (user.isAdmin()) {
                                         if (split[0].equals("rl")) {
                                             //Delete the Message after reading it
                                             message.setFlag(Flags.Flag.DELETED, true);
-
-                                            //Close the inbox
+                                            
                                             inbox.close(true);
-
-                                            //Close the session
                                             store.close();
-
+                                            
                                             //Reload Server
                                             TextPlayer.server.dispatchCommand(new TextPlayerCommandSender(user), msg);
                                             return;
-                                        }
-                                        else
+                                        } else {
                                             TextPlayer.server.dispatchCommand(new TextPlayerCommandSender(user), msg);
-                                    else
+                                        }
+                                    } else {
                                         sendMsg(null, user, "You must be an Admin to do that");
+                                    }
                                 }
+                            }
                         }
                     }
                     catch (Exception e) {
                         //Notify the Server log if set to in the config
-                        if (notify)
+                        if (notify) {
                             System.out.println("[TextPlayer] Error reading email, Message thrown out");
+                        }
 
-                        if (debug)
+                        if (debug) {
                             e.printStackTrace();
+                        }
                     }
 
                     //Delete the Message after reading it
                     message.setFlag(Flags.Flag.DELETED, true);
                 }
-
-                //Close the inbox
+                
                 inbox.close(true);
-
-                //Close the session
                 store.close();
             }
         }
@@ -343,20 +360,21 @@ public class TextPlayerMailer {
             BufferedReader br = new BufferedReader(new InputStreamReader(message.getInputStream()));
             String line = br.readLine();
             
-            while (line != null)
-                if (line.contains("<br>"))
+            while (line != null) {
+                if (line.contains("<br>")) {
                     return line.replace("<br>", "\n");
-                else {
+                } else {
                     line = new String(decoder.decodeBuffer(line));
-                    
-                    if (line.contains("<br>"))
+                    if (line.contains("<br>")) {
                         return line.replace("<br>", "\n");
-                    else
+                    } else {
                         line = br.readLine();
+                    }
                 }
-        }
-        else if (message.isMimeType("text/*"))
+            }
+        } else if (message.isMimeType("text/*")) {
             return streamToString(message.getInputStream());
+        }
         
         return "";
     }
@@ -370,8 +388,9 @@ public class TextPlayerMailer {
      */
     private static String streamToString(InputStream is) throws Exception {
         //Return an empty string if no InputStream was given
-        if (is == null)
+        if (is == null) {
             return "";
+        }
         
         Writer writer = new StringWriter();
         char[] buffer = new char[1024];
@@ -379,10 +398,10 @@ public class TextPlayerMailer {
         try {
             Reader reader = new BufferedReader(new InputStreamReader(is, "UTF-8"));
             int n;
-            while ((n = reader.read(buffer)) != -1)
+            while ((n = reader.read(buffer)) != -1) {
                 writer.write(buffer, 0, n);
-        }
-        finally {
+            }
+        } finally {
             is.close();
         }
         
@@ -397,18 +416,21 @@ public class TextPlayerMailer {
      */
     private static String cleanUp(String msg) {
         //Eliminate all 'RE:'s
-        if (msg.contains("RE:"))
+        if (msg.contains("RE:")) {
             msg = msg.replace("RE:", "");
+        }
         
         //Eliminate white space before the first word
-        while (msg.startsWith(" ") || msg.startsWith("/") || msg.startsWith("\n"))
+        while (msg.startsWith(" ") || msg.startsWith("/") || msg.startsWith("\n")) {
             msg = msg.substring(msg.startsWith("\n") ? 2 : 1);
+        }
         
         //Throw out everything but the first line and trim white space off of the end
         msg = msg.split("\n")[0].trim();
         
         //Change the first letter to lowercase and return the String
-        return msg.length() > 2 ? msg.substring(0, 1).toLowerCase().concat(msg.substring(1)) : msg.toLowerCase();
+        msg = msg.length() > 2 ? msg.substring(0, 1).toLowerCase().concat(msg.substring(1)) : msg.toLowerCase();
+        return msg;
     }
     
     /**
@@ -433,20 +455,21 @@ public class TextPlayerMailer {
         try {
             store = session.getStore("pop3");
             transport = session.getTransport("smtp");
-        }
-        catch (Exception ex) {
-            System.out.println("[TextPlayer] Cannot read incoming mail!");
+        } catch (Exception ex) {
+            System.err.println("[TextPlayer] Cannot read incoming mail!");
             ex.printStackTrace();
         }
         
-        if (interval == 0)
+        if (interval == 0) {
             System.out.println("[TextPlayer] Only checking for new mail on command "+'"'+"/text check"+'"');
+        }
         else {
             TextPlayer.server.getScheduler().scheduleAsyncRepeatingTask(TextPlayer.plugin, new Runnable() {
                 @Override
                 public void run() {
-                    if (!processing)
+                    if (!processing) {
                         checkMail();
+                    }
                 }
             }, 0L, 20L * interval);
             
@@ -463,18 +486,21 @@ public class TextPlayerMailer {
             @Override
             public void run() {
                 if (processing) {
-                    if (player != null)
+                    if (player != null) {
                         player.sendMessage("§4Mail check is already in progress.");
+                    }
                     return;
                 }
                 
-                if (player != null)
+                if (player != null) {
                     player.sendMessage("§5Checking for new mail...");
+                }
                 
                 checkMail();
                 
-                if (player != null)
+                if (player != null) {
                     player.sendMessage("§5Finished checking for new mail.");
+                }
             }
         }, 0L);
     }

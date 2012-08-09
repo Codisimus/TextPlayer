@@ -12,17 +12,21 @@ import java.util.logging.LogRecord;
 public class LogListener extends Handler {
     @Override
     public void publish(LogRecord record) {
-        if (record.getLevel() != Level.SEVERE)
+        if (record.getLevel() != Level.SEVERE) {
             return;
+        }
 
         String msg = record.getMessage();
-        if (msg == null)
+        if (msg == null) {
             return;
+        }
 
         msg = record.getLoggerName()+" generated an error: "+msg;
-        for (User user: TextPlayer.getUsers())
-            if (user.watchingErrors)
+        for (User user: TextPlayer.getUsers()) {
+            if (user.watchingErrors) {
                 user.sendText(msg);
+            }
+        }
     }
 
     @Override
