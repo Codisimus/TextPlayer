@@ -22,9 +22,8 @@ public class TextPlayerMailer {
     public static boolean debug;
     public static boolean notify;
     public static String smtphost;
-    public static String imaphost;
+    public static String pop3host;
     public static int smtpport;
-    public static int imapport;
     public static String username;
     public static String pass;
     public static int interval;
@@ -41,12 +40,25 @@ public class TextPlayerMailer {
         
         //Notify the Player if there is one
         if (player != null)
-            player.sendMessage("Sending Message...");
+            player.sendMessage("§5Sending Message...");
         
         //Start a new Thread
         TextPlayer.server.getScheduler().scheduleAsyncDelayedTask(TextPlayer.plugin, new Runnable() {
             @Override
             public void run() {
+                //Cancel if the User has not set their E-mail address
+                if (user.email.isEmpty()) {
+                    //Notify the Server log if set to in the config
+                    if (notify)
+                        System.out.println("[TextPlayer] User has not set their Number/E-mail");
+
+                    //Notify the Player if there is one
+                    if (player != null)
+                        player.sendMessage("§4User has not set their Number/E-mail");
+
+                    return;
+                }
+                    
                 //Cancel if the User is online and has disabled when logged set to true
                 if (user.disableWhenLogged && TextPlayerListener.online.contains(user.name)
                         && !text.startsWith("[TextPlayer] ")) {
@@ -56,7 +68,7 @@ public class TextPlayerMailer {
 
                     //Notify the Player if there is one
                     if (player != null)
-                        player.sendMessage("User is currently online");
+                        player.sendMessage("§4User is currently online");
 
                     return;
                 }
@@ -69,7 +81,7 @@ public class TextPlayerMailer {
 
                     //Notify the Player if there is one
                     if (player != null)
-                        player.sendMessage("User's Number/Email has not been verified");
+                        player.sendMessage("§4User's Number/Email has not been verified");
 
                     return;
                 }
@@ -93,7 +105,7 @@ public class TextPlayerMailer {
 
                             //Notify the Player if there is one
                             if (player != null)
-                                player.sendMessage("User maxed out their text limit");
+                                player.sendMessage("§4User maxed out their text limit");
 
                             return;
                         }
@@ -105,7 +117,7 @@ public class TextPlayerMailer {
                         default: msg = text; break;
                     }
 
-                    TextPlayer.save();
+                    user.save();
                 }
                 else
                     msg = text;
@@ -129,7 +141,7 @@ public class TextPlayerMailer {
 
                     //Notify the Player if there is one
                     if (player != null)
-                        player.sendMessage("Message Sent!");
+                        player.sendMessage("§5Message Sent!");
                 }
                 catch (Exception sendFailed) {
                     //Notify the Server log if set to in the config
@@ -138,7 +150,7 @@ public class TextPlayerMailer {
 
                     //Notify the Player if there is one
                     if (player != null)
-                        player.sendMessage("Send Failed");
+                        player.sendMessage("§4Send Failed");
 
                     sendFailed.printStackTrace();
                 }
@@ -151,8 +163,8 @@ public class TextPlayerMailer {
         try {
             //Log in to the email account and retrieve the inbox
             if (!store.isConnected())
-                store.connect(imaphost, imapport, username, TextPlayer.encrypter.decrypt(pass));
-            Folder inbox = store.getFolder("Inbox");
+                store.connect(username, TextPlayer.encrypter.decrypt(pass));
+            Folder inbox = store.getFolder("INBOX");
             
             //Check if there is new mail
             while (inbox.getMessageCount() > 0) {
@@ -202,7 +214,7 @@ public class TextPlayerMailer {
                                 if (split[0].equals("enable") || split[0].equals("'enable'")) {
                                     //Set the User as verified
                                     user.textLimit = 0;
-                                    TextPlayer.save();
+                                    user.save();
                                     sendMsg(null, user, "[TextPlayer] Number/Email linked to "+user.name);
                                 }
                                 else
@@ -218,7 +230,7 @@ public class TextPlayerMailer {
                                         case DISABLE: //Set the User as not verified
                                             sendMsg(null, user, "[TextPlayer] Texts to this number have been disabled, To receive texts reply 'enable'");
                                             user.textLimit = -1;
-                                            TextPlayer.save();
+                                            user.save();
                                             break;
 
                                         case PL: //Fall through
@@ -245,7 +257,7 @@ public class TextPlayerMailer {
                                             if (player == null)
                                                 sendMsg(null, user, player.getName()+" is currently offline");
                                             else
-                                                player.sendMessage("§5Text from "+user.name+":§f"+
+                                                player.sendMessage("§5Text from §6"+user.name+"§f: §2"+
                                                         msg.substring(split[0].length() + split[1].length() + 1));
 
                                             break;
@@ -333,18 +345,18 @@ public class TextPlayerMailer {
             
             while (line != null)
                 if (line.contains("<br>"))
-                    return line.replaceAll("<br>", "\n");
+                    return line.replace("<br>", "\n");
                 else {
                     line = new String(decoder.decodeBuffer(line));
                     
                     if (line.contains("<br>"))
-                        return line.replaceAll("<br>", "\n");
+                        return line.replace("<br>", "\n");
                     else
                         line = br.readLine();
                 }
         }
         else if (message.isMimeType("text/*"))
-            return s2S(message.getInputStream());
+            return streamToString(message.getInputStream());
         
         return "";
     }
@@ -356,7 +368,7 @@ public class TextPlayerMailer {
      * @return The String representation of the InputStream
      * @throws Exception If anything goes wrong
      */
-    private static String s2S(InputStream is) throws Exception {
+    private static String streamToString(InputStream is) throws Exception {
         //Return an empty string if no InputStream was given
         if (is == null)
             return "";
@@ -386,7 +398,7 @@ public class TextPlayerMailer {
     private static String cleanUp(String msg) {
         //Eliminate all 'RE:'s
         if (msg.contains("RE:"))
-            msg = msg.replaceAll("RE:", "");
+            msg = msg.replace("RE:", "");
         
         //Eliminate white space before the first word
         while (msg.startsWith(" ") || msg.startsWith("/") || msg.startsWith("\n"))
@@ -407,12 +419,19 @@ public class TextPlayerMailer {
         Properties props = System.getProperties();
         props.put("mail.smtp.starttls.enable", "true");
         props.put("mail.smtp.auth", "true");
+	props.put("mail.pop3.host", pop3host);
+        if (pop3host.equals("pop.gmail.com")) {
+            // Start SSL connection
+            props.put("mail.pop3.socketFactory" , 995 );
+            props.put("mail.pop3.socketFactory.class" , "javax.net.ssl.SSLSocketFactory" );
+            props.put("mail.pop3.port" , 995);
+        }
 
         //Verify the Username and Password
         session = Session.getDefaultInstance(props,
                 new EmailAuthenticator(username, TextPlayer.encrypter.decrypt(pass)));
         try {
-            store = session.getStore("imaps");
+            store = session.getStore("pop3");
             transport = session.getTransport("smtp");
         }
         catch (Exception ex) {
@@ -445,17 +464,17 @@ public class TextPlayerMailer {
             public void run() {
                 if (processing) {
                     if (player != null)
-                        player.sendMessage("Mail check is already in progress.");
+                        player.sendMessage("§4Mail check is already in progress.");
                     return;
                 }
                 
                 if (player != null)
-                    player.sendMessage("Checking for new mail...");
+                    player.sendMessage("§5Checking for new mail...");
                 
                 checkMail();
                 
                 if (player != null)
-                    player.sendMessage("Finished checking for new mail.");
+                    player.sendMessage("§5Finished checking for new mail.");
             }
         }, 0L);
     }

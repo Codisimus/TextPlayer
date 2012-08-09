@@ -1,5 +1,7 @@
 package com.codisimus.plugins.textplayer;
 
+import com.codisimus.plugins.textplayer.SMSGateways.Carrier;
+import java.io.File;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -11,10 +13,11 @@ import org.bukkit.entity.Player;
  * @author Codisimus
  */
 public class TextPlayerCommand implements CommandExecutor {
-    private static enum Action { AGREE, HELP, CHECK, SET, CLEAR, WATCH, UNWATCH, ENABLE, DISABLE, LIMIT, LIST }
-    private static enum WatchType { PLAYER, SERVER, ITEM, WORD }
+    private static enum Action { AGREE, HELP, CHECK, SET, CLEAR, WATCH, UNWATCH, ENABLE, DISABLE, LIMIT, WHITELIST, LIST }
+    private static enum WatchType { PLAYER, SERVER, ITEM, WORD, ERRORS }
     private static enum ListType { CARRIERS, USERS, ADMINS, WATCHING }
     static String command;
+    private static String permissionMsg = "§4You do not have permission to do that";
     
     /**
      * Listens for ButtonWarp commands to execute them
@@ -44,7 +47,7 @@ public class TextPlayerCommand implements CommandExecutor {
         try {
             action = Action.valueOf(args[0].toUpperCase());
         }
-        catch (Exception notEnum) {
+        catch (IllegalArgumentException notEnum) {
             //Cancel if the first argument is not a valid User
             User user = TextPlayer.findUser(args[0]);
             if (user == null)
@@ -53,13 +56,19 @@ public class TextPlayerCommand implements CommandExecutor {
                     user.textLimit = 0;
                 }
                 else {
-                    player.sendMessage("User "+args[0]+" not found");
+                    player.sendMessage("§4User §6"+args[0]+" §4not found");
                     return true;
                 }
 
+            //Cancel if the Player is not whitelisted
+            if (!user.isWhiteListed(player.getName())) {
+                player.sendMessage("§6"+user.name+" §4has not white listed you");
+                return true;
+            }
+
             //Cancel if the Player does not have the needed permission
             if (!TextPlayer.hasPermission(player, user.isAdmin() ? "text" : "textadmin")) {
-                player.sendMessage("You do not have permission to do that");
+                player.sendMessage(permissionMsg);
                 return true;
             }
 
@@ -83,11 +92,11 @@ public class TextPlayerCommand implements CommandExecutor {
         if (user == null) {
             if (action == Action.AGREE) {
                 TextPlayer.users.put(playerName, new User(playerName));
-                player.sendMessage("You have agreed to the Terms of Use");
+                player.sendMessage("§5You have agreed to the Terms of Use");
                 TextPlayerListener.online.add(playerName);
             }
             else {
-                player.sendMessage("§5You must first agree to the Terms of Use by typing §2/text agree");
+                player.sendMessage("§4You must first agree to the Terms of Use by typing §2/text agree");
                 player.sendMessage("§bThe Terms are listed below and at §2www.codisimus.com/terms");
                 player.sendMessage("§5The author of this plugin is not responsible for any of the following:");
                 player.sendMessage("§21. §bCharges which may occur through receiving text messages");
@@ -106,7 +115,7 @@ public class TextPlayerCommand implements CommandExecutor {
 
                 //Cancel if the Player does not have the needed permission
                 if (!TextPlayer.hasPermission(player, "use")) {
-                    player.sendMessage("You do not have permission to do that");
+                    player.sendMessage(permissionMsg);
                     return true;
                 }
 
@@ -115,22 +124,15 @@ public class TextPlayerCommand implements CommandExecutor {
                 return true;
                 
             case CLEAR:
-                TextPlayer.users.remove(player.getName());
-                player.sendMessage("Your Phone Number/E-mail information has been cleared");
-                
-                TextPlayer.save();
+                TextPlayer.users.remove(playerName);
+                player.sendMessage("§5Your Phone Number/E-mail information has been cleared");
+                new File(TextPlayer.dataFolder+"/Users/"+playerName+".properties").delete();
                 return true;
                 
             case WATCH:
                 int length = args.length;
                 if (length < 2) {
                     sendWatchHelp(player);
-                    return true;
-                }
-                
-                //Cancel if the Player does not have the needed permission
-                if (!TextPlayer.hasPermission(player, "watch."+args[1])) {
-                    player.sendMessage("You do not have permission to do that");
                     return true;
                 }
                 
@@ -145,13 +147,30 @@ public class TextPlayerCommand implements CommandExecutor {
                     return true;
                 }
                 
-                if (watchType != WatchType.SERVER)
-                    if (length < 3) {
-                        sendWatchHelp(player);
-                        return true;
-                    }
-                    else
-                        string = args[2];
+                //Cancel if the Player does not have the needed permission
+                if (!TextPlayer.hasPermission(player, "watch."+args[1]) && !args[1].equals("*")) {
+                    player.sendMessage(permissionMsg);
+                    return true;
+                }
+                
+                switch (watchType) {
+                    case SERVER:
+                    case ERRORS:
+                        if (length > 2) {
+                            sendWatchHelp(player);
+                            return true;
+                        }
+                        break;
+                        
+                    default:
+                        if (length < 3) {
+                            sendWatchHelp(player);
+                            return true;
+                        }
+                        else
+                            string = args[2];
+                        break;
+                }
                 
                 watch(player, user, watchType, string);
                 return true;
@@ -165,7 +184,7 @@ public class TextPlayerCommand implements CommandExecutor {
                 
                 //Cancel if the Player does not have the needed permission
                 if (!TextPlayer.hasPermission(player, "watch."+args[1])) {
-                    player.sendMessage("You do not have permission to do that");
+                    player.sendMessage(permissionMsg);
                     return true;
                 }
                 
@@ -180,29 +199,40 @@ public class TextPlayerCommand implements CommandExecutor {
                     return true;
                 }
                 
-                if (type != WatchType.SERVER)
-                    if (l < 3) {
-                        sendWatchHelp(player);
-                        return true;
-                    }
-                    else
-                        name = args[2];
+                switch (type) {
+                    case SERVER:
+                    case ERRORS:
+                        if (l > 2) {
+                            sendWatchHelp(player);
+                            return true;
+                        }
+                        break;
+                        
+                    default:
+                        if (l < 3) {
+                            sendWatchHelp(player);
+                            return true;
+                        }
+                        else
+                            name = args[2];
+                        break;
+                }
                 
                 unwatch(player, user, type, name);
                 return true;
                 
             case ENABLE:
                 user.disableWhenLogged = false;
-                player.sendMessage("You will receive texts when you are logged on");
+                player.sendMessage("§5You will receive texts when you are logged on");
 
-                TextPlayer.save();
+                user.save();
                 return true;
                 
             case DISABLE:
                 user.disableWhenLogged = true;
-                player.sendMessage("You will not receive texts when you are logged on");
+                player.sendMessage("§5You will only receive texts when you are logged off");
 
-                TextPlayer.save();
+                user.save();
                 return true;
                 
             case LIMIT:
@@ -212,19 +242,54 @@ public class TextPlayerCommand implements CommandExecutor {
                 try {
                     //Cancel if the User is not verified
                     if (user.textLimit == -1) {
-                        player.sendMessage("You must first verify you email address");
+                        player.sendMessage("§4You must first verify you email address");
                         return true;
                     }
 
                     user.textLimit = Integer.parseInt(args[1]);
-                    player.sendMessage("You will receive no more than "+args[1]+" texts each day");
+                    player.sendMessage("§5You will receive no more than §6"+args[1]+" §5texts each day");
 
-                    TextPlayer.save();
+                    user.save();
                     return true;
                 }
                 catch (Exception notInt) {
                     break;
                 }
+                
+            case WHITELIST:
+                if (args.length != 3)
+                    break;
+
+                //Cancel if the Player does not have the needed permission
+                if (!TextPlayer.hasPermission(player, "use")) {
+                    player.sendMessage(permissionMsg);
+                    return true;
+                }
+
+                String whitelistName = args[2];
+                if (args[1].equals("add")) {
+                    if (user.isWhiteListed(whitelistName) && !user.whiteList.isEmpty())
+                        player.sendMessage("§4You have already whitelisted §6"+whitelistName);
+                    else {
+                        user.whiteList.add(whitelistName);
+                        player.sendMessage("§6"+whitelistName+" §5can now text you");
+                    }
+                }
+                else if (args[1].equals("remove")) {
+                    if (user.whiteList.isEmpty())
+                        player.sendMessage("§5You do not have a whitelist yet");
+                    if (user.isWhiteListed(whitelistName)) {
+                        user.whiteList.remove(whitelistName);
+                        player.sendMessage("§6"+whitelistName+" §5is no longer whitelisted");
+                    }
+                    else
+                        player.sendMessage("§6"+whitelistName+" §4is not whitelisted");
+                }
+                else
+                    break;
+                
+                user.save();
+                return true;
                 
             case LIST:
                 if (args.length != 2)
@@ -244,7 +309,7 @@ public class TextPlayerCommand implements CommandExecutor {
                 if (TextPlayer.hasPermission(player, "check"))
                     TextPlayerMailer.forceCheck(player);
                 else
-                    player.sendMessage("You do not have permission to do that");
+                    player.sendMessage(permissionMsg);
                 
                 return true;
                 
@@ -267,44 +332,56 @@ public class TextPlayerCommand implements CommandExecutor {
     private static void watch(Player player, User user, WatchType type, String name) {
         //Determine the WatchType
         switch (type) {
+            case ERRORS:
+                //Cancel if the User is already watching
+                if (user.watchingErrors) {
+                    player.sendMessage("§4You are already watching errors");
+                    return;
+                }
+                
+                user.watchingErrors = true;
+                
+                player.sendMessage("§5You will be alerted when an error is printed to the server log");
+                break;
+                
             case SERVER:
                 //Cancel if the User is already watching
                 if (user.watchingServer) {
-                    player.sendMessage("You are already watching the server");
+                    player.sendMessage("§4You are already watching the server");
                     return;
                 }
                 
                 user.watchingServer = true;
                 
-                player.sendMessage("You will be alerted when Server come online");
+                player.sendMessage("§5You will be alerted when Server come online");
                 break;
                 
             case PLAYER:
                 if (name.equals("*")) {
                     //Cancel if the Player does not have the needed permission
                     if (!TextPlayer.hasPermission(player, "watch.everyplayer")) {
-                        player.sendMessage("You do not have permission to do that");
+                        player.sendMessage(permissionMsg);
                         return;
                     }
                 
                     //Cancel if the User is already watching
                     if (user.players.contains(name)) {
-                        player.sendMessage("You are already watching every Player");
+                        player.sendMessage("§4You are already watching every Player");
                         return;
                     }
                     
                     user.players.add(name);
-                    player.sendMessage("Now watching every Player");
+                    player.sendMessage("§5You are now watching every Player");
                 }
                 else {
                     //Cancel if the User is already watching
                     if (user.players.contains(name)) {
-                        player.sendMessage("You are already watching "+name);
+                        player.sendMessage("§4You are already watching §6"+name);
                         return;
                     }
                 
                     user.players.add(name);
-                    player.sendMessage("Now watching "+name);
+                    player.sendMessage("§5You are now watching §6"+name);
                 }
                 
                 break;
@@ -312,31 +389,31 @@ public class TextPlayerCommand implements CommandExecutor {
             case ITEM:
                 //Cancel if the User is already watching
                 if (user.items.contains(name)) {
-                    player.sendMessage("You are already watching "+name);
+                    player.sendMessage("§4You are already watching §6"+name);
                     return;
                 }
 
                 user.items.add(name);
                 
-                player.sendMessage("Now watching "+name);
+                player.sendMessage("§5You are now watching §6"+name);
                 break;
                 
             case WORD:
                 //Cancel if the User is already watching
                 if (user.words.contains(name)) {
-                    player.sendMessage("You are already watching "+name);
+                    player.sendMessage("§4You are already watching §6"+name);
                     return;
                 }
 
                 user.words.add(name);
                 
-                player.sendMessage("Now watching "+name);
+                player.sendMessage("§5You are now watching §6"+name);
                 break;
             
             default: return;
         }
         
-        TextPlayer.save();
+        user.save();
     }
     
     /**
@@ -349,70 +426,72 @@ public class TextPlayerCommand implements CommandExecutor {
     private static void unwatch(Player player, User user, WatchType type, String name) {
         //Determine the WatchType
         switch (type) {
+            case ERRORS:
+                //Cancel if the User is already watching
+                if (!user.watchingErrors) {
+                    player.sendMessage("§4You are not watching errors");
+                    return;
+                }
+                
+                user.watchingErrors = false;
+                
+                player.sendMessage("§5You will not be alerted when an error is printed to the server log");
+                break;
+                
             case SERVER:
                 //Cancel if the User is already watching
                 if (!user.watchingServer) {
-                    player.sendMessage("You are not watching the server");
+                    player.sendMessage("§4You are not watching the server");
                     return;
                 }
                 
                 user.watchingServer = false;
                 
-                player.sendMessage("You will not be alerted when Server come online");
+                player.sendMessage("§5You will not be alerted when Server comes online");
                 break;
                 
             case PLAYER:
-                if (name.equals("*")) {
-                    //Cancel if the User is already watching
-                    if (user.players.contains(name)) {
-                        player.sendMessage("You are not watching every Player");
-                        return;
-                    }
-                    
-                    user.players.remove(name);
-                    player.sendMessage("No longer watching every Player");
-                }
-                else {
-                    //Cancel if the User is already watching
-                    if (user.players.contains(name)) {
-                        player.sendMessage("You are not watching "+name);
-                        return;
-                    }
+                String playerName = name.equals("*") ? "every Player" : "§6"+name;
                 
-                    user.players.remove(name);
-                    player.sendMessage("No longer watching "+name);
+                //Cancel if the User is already watching
+                if (user.players.contains(name)) {
+                    player.sendMessage("§4You are not watching "+playerName);
+                    return;
                 }
+
+                user.players.remove(name);
+                player.sendMessage("§5You are no longer watching "+playerName);
                 
                 break;
                 
             case ITEM:
                 //Cancel if the User is already watching
                 if (user.items.contains(name)) {
-                    player.sendMessage("You are not watching "+name);
+                    player.sendMessage("§4You are not watching §6"+name);
                     return;
                 }
 
                 user.items.remove(name);
                 
-                player.sendMessage("No longer watching "+name);
+                player.sendMessage("§5You are no longer watching §6"+name);
                 break;
                 
             case WORD:
                 //Cancel if the User is already watching
                 if (user.words.contains(name)) {
-                    player.sendMessage("You are not watching "+name);
+                    player.sendMessage("§4You are not watching §6"+name);
                     return;
                 }
 
                 user.words.remove(name);
                 
-                player.sendMessage("No longer watching "+name);
+                player.sendMessage("§5You are no longer watching §6"+name);
                 break;
             
             default: sendHelp(player); return;
         }
         
-        TextPlayer.save();
+        user.save();
     }
     
     /**
@@ -425,59 +504,60 @@ public class TextPlayerCommand implements CommandExecutor {
         //Determine what to list
         switch (type) {
             case CARRIERS:
-                player.sendMessage("§5Supported Carriers:");
-                player.sendMessage("§2At&t, Bell, BeeLine, Bouygues, Cricket, D1, E-Plus, Etisalat, Fido");
-                player.sendMessage("§2Koodo, LMT, MetroPCS, Mobistar, MTS, NetCom, Optimus, Optus, Orange");
-                player.sendMessage("§2O2-UK, O2-Germany, Rogers, SFR, SoftBank, Sprint, Starhub, Sunrise");
-                player.sendMessage("§2Swisscom, TDC, Telecom, Telenor, Tele2, Telia, Telstra, Telus, Three");
-                player.sendMessage("§2TMN, T-Mobile, T-Mobile-Czech, US-Cellular, Verizon, Virgin-Mobile");
-                player.sendMessage("§2Virgin-Mobile-Canada, Vivo, Vodafone-Germany, Vodafone-Greece");
-                player.sendMessage("§2Vodafone-Iceland, Vodafone-Italy, Vodafone-UK");
-                player.sendMessage("§bIf your cell phone provider is not listed,");
-                player.sendMessage("§bhave an admin contact Codisimus about adding it.");
+                String carriers = "";
+                for (Carrier carrier: Carrier.values())
+                    carriers = carriers.concat("§f, §6"+carrier.name());
+                player.sendMessage("§eSupported Carriers§f: "+carriers.substring(4));
                 break;
 
             case USERS:
                 //Cancel if the Player does not have the needed permission
                 if (!TextPlayer.hasPermission(player, "listusers")) {
-                    player.sendMessage("You do not have permission to do that");
+                    player.sendMessage(permissionMsg);
                     return;
                 }
                 
-                String userList = "§eCurrent Users:§2  ";
-                for(User tempUser: TextPlayer.users.values())
-                    userList = userList.concat(tempUser.name+", ");
+                String userList = "";
+                for (User tempUser: TextPlayer.getUsers())
+                    if (tempUser.isWhiteListed(player.getName()))
+                        userList = userList.concat("§f, §6"+tempUser.name);
                 
-                player.sendMessage(userList.substring(0, userList.length() - 2));
+                player.sendMessage("§eCurrent Users§f: "+userList.substring(4));
                 break;
                 
             case ADMINS:
                 //Cancel if the Player does not have the needed permission
                 if (!TextPlayer.hasPermission(player, "listadmins")) {
-                    player.sendMessage("You do not have permission to do that");
+                    player.sendMessage(permissionMsg);
                     return;
                 }
                 
-                String adminList = "§eCurrent Admins:§2  ";
-                for(User tempUser: TextPlayer.users.values())
-                    if (tempUser.isAdmin())
-                        adminList = adminList.concat(tempUser.name+", ");
+                String adminList = "";
+                for (User tempUser: TextPlayer.getUsers())
+                    if (tempUser.isWhiteListed(player.getName()) && tempUser.isAdmin())
+                        adminList = adminList.concat("§f, §6"+tempUser.name);
                 
-                player.sendMessage(adminList.substring(0, adminList.length() - 2));
+                player.sendMessage("§eCurrent Admins§f: "+adminList.substring(4));
                 break;
 
             case WATCHING:
                 //Cancel if the Player does not have an existing User
                 User user = TextPlayer.findUser(player.getName());
                 if (user == null) {
-                    player.sendMessage("You must first add your contact info");
+                    player.sendMessage("§4You must first add your contact info");
                     return;
                 }
                 
-                player.sendMessage("§2Watching Server: "+user.watchingServer);
-                player.sendMessage("§2Watching Players: ".concat(user.players.toString()));
-                player.sendMessage("§2Watching Items: ".concat(user.items.toString()));
-                player.sendMessage("§2Watching Words: ".concat(user.words.toString()));
+                if (TextPlayer.hasPermission(player, "watch.server"))
+                    player.sendMessage("§2Watching Server: §6"+user.watchingServer);
+                if (TextPlayer.hasPermission(player, "watch.errors"))
+                    player.sendMessage("§2Watching Errors: §6"+user.watchingErrors);
+                if (TextPlayer.hasPermission(player, "watch.player"))
+                    player.sendMessage("§2Watching Players: §6".concat(user.players.toString()));
+                if (TextPlayer.hasPermission(player, "watch.item"))
+                    player.sendMessage("§2Watching Items: §6".concat(user.items.toString()));
+                if (TextPlayer.hasPermission(player, "watch.word"))
+                    player.sendMessage("§2Watching Words: §6".concat(user.words.toString()));
                 break;
         }
     }
@@ -489,18 +569,32 @@ public class TextPlayerCommand implements CommandExecutor {
      */
     private static void sendWatchHelp(Player player) {
         player.sendMessage("§5     TextPlayer Watch Help Page:");
-        player.sendMessage("§2/"+command+" watch player [Name]§b Be alerted when Player logs on");
-        player.sendMessage("§2/"+command+" unwatch player [Name]§b Unwatch a Player");
-        player.sendMessage("§2/"+command+" watch player *§b Be alerted when any Player logs on");
-        player.sendMessage("§2/"+command+" unwatch player *§b Unwatch all Player");
-        player.sendMessage("§2/"+command+" watch server§b Be alerted when Server comes online");
-        player.sendMessage("§2/"+command+" unwatch server§b Unwatch the Server");
-        player.sendMessage("§2/"+command+" watch item tnt§b Receive message when tnt is placed");
-        player.sendMessage("§2/"+command+" unwatch item tnt§b Unwatch tnt");
-        player.sendMessage("§2/"+command+" watch item fire§b Receive message when fire is lit");
-        player.sendMessage("§2/"+command+" unwatch item fire§b Unwatch fire");
-        player.sendMessage("§2/"+command+" watch word [Word]§b Receive message when word is spoken");
-        player.sendMessage("§2/"+command+" unwatch word [Word]§b Unwatch a word");
+        if (TextPlayer.hasPermission(player, "watch.player")) {
+            player.sendMessage("§2/"+command+" watch player [Name]§b Be alerted when Player logs on");
+            player.sendMessage("§2/"+command+" unwatch player [Name]§b Unwatch a Player");
+        }
+        if (TextPlayer.hasPermission(player, "watch.everyplayer")) {
+            player.sendMessage("§2/"+command+" watch player *§b Be alerted when any Player logs on");
+            player.sendMessage("§2/"+command+" unwatch player *§b Unwatch all Players");
+        }
+        if (TextPlayer.hasPermission(player, "watch.server")) {
+            player.sendMessage("§2/"+command+" watch server§b Be alerted when Server comes online");
+            player.sendMessage("§2/"+command+" unwatch server§b Unwatch the Server");
+        }
+        if (TextPlayer.hasPermission(player, "watch.errors")) {
+            player.sendMessage("§2/"+command+" watch errors§b Be alerted when server errors occur");
+            player.sendMessage("§2/"+command+" unwatch errors§b Unwatch errors");
+        }
+        if (TextPlayer.hasPermission(player, "watch.item")) {
+            player.sendMessage("§2/"+command+" watch item tnt§b Receive message when tnt is placed");
+            player.sendMessage("§2/"+command+" unwatch item tnt§b Unwatch tnt");
+            player.sendMessage("§2/"+command+" watch item fire§b Receive message when fire is lit");
+            player.sendMessage("§2/"+command+" unwatch item fire§b Unwatch fire");
+        }
+        if (TextPlayer.hasPermission(player, "watch.word")) {
+            player.sendMessage("§2/"+command+" watch word [Word]§b Receive message when word is spoken");
+            player.sendMessage("§2/"+command+" unwatch word [Word]§b Unwatch a word");
+        }
     }
     
     /**
@@ -511,18 +605,26 @@ public class TextPlayerCommand implements CommandExecutor {
     private static void sendHelp(Player player) {
         player.sendMessage("§5     TextPlayer Help Page:");
         player.sendMessage("§eTextPlayer is used to send messages to a Users phone/email");
-        player.sendMessage("§2/"+command+" [Name] [Message]§b Send message to User");
-        player.sendMessage("§2/"+command+" set [Carrier] [Number]§b Receive messages to phone");
-        player.sendMessage("§2/"+command+" set email [Address]§b Receive messages to email address");
-        player.sendMessage("§2/"+command+" clear§b Clear your Phone Number/E-mail Information");
-        player.sendMessage("§2/"+command+" watch§b Display Watch Help Page");
-        player.sendMessage("§2/"+command+" enable§b Receive texts while logged on");
-        player.sendMessage("§2/"+command+" disable§b Do not receive texts while logged on");
-        player.sendMessage("§2/"+command+" limit [Number]§b Limit number of texts received each day");
+        if (TextPlayer.hasPermission(player, "text"))
+            player.sendMessage("§2/"+command+" [Name] [Message]§b Send message to User");
+        if (TextPlayer.hasPermission(player, "use")) {
+            player.sendMessage("§2/"+command+" set [Carrier] [Number]§b Receive messages to phone");
+            player.sendMessage("§2/"+command+" set email [Address]§b Receive messages to email address");
+            player.sendMessage("§2/"+command+" clear§b Clear your Phone Number/E-mail Information");
+            player.sendMessage("§2/"+command+" enable§b Receive texts while logged on");
+            player.sendMessage("§2/"+command+" disable§b Do not receive texts while logged on");
+            player.sendMessage("§2/"+command+" limit [Number]§b Limit number of texts received each day");
+            player.sendMessage("§2/"+command+" whitelist add [Player]§b Allow the Player to text you");
+            player.sendMessage("§2/"+command+" whitelist remove [Player]§b Remove the Player");
+        }
         player.sendMessage("§2/"+command+" list carriers§b List supported Carriers");
-        player.sendMessage("§2/"+command+" list users§b List current Users");
-        player.sendMessage("§2/"+command+" list admins§b List current Admins");
+        if (TextPlayer.hasPermission(player, "listusers")) {
+            player.sendMessage("§2/"+command+" list users§b List current Users");
+            player.sendMessage("§2/"+command+" list admins§b List current Admins");
+        }
+        if (TextPlayer.hasPermission(player, "check"))
+            player.sendMessage("§2/"+command+" check§b Force the Server to check for new Mail");
         player.sendMessage("§2/"+command+" list watching§b List what you are watching");
-        player.sendMessage("§2/"+command+" check§b Force the Server to check for new Mail");
+        player.sendMessage("§2/"+command+" watch§b Display Watch Help Page");
     }
 }

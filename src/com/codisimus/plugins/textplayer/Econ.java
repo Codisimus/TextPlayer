@@ -12,39 +12,6 @@ public class Econ {
     public static Economy economy;
     static int cost;
     static int costAdmin;
-
-    /**
-     * Charges a Player a given amount of money, which goes to a Player/Bank
-     * 
-     * @param player The name of the Player to be charged
-     * @param source The Player/Bank that will receive the money
-     * @param amount The amount that will be charged
-     * @return True if the transaction was successful
-     */
-    public static boolean charge(Player player, String source, double amount) {
-        String name = player.getName();
-        
-        //Cancel if the Player cannot afford the transaction
-        if (!economy.has(name, amount)) {
-            player.sendMessage("You need "+economy.format(amount)+" to activate that");
-            return false;
-        }
-        
-        economy.withdrawPlayer(name, amount);
-        
-        //Money does not go to anyone if the source is the server
-        if (source.equalsIgnoreCase("server"))
-            return true;
-        
-        if (source.startsWith("bank:"))
-            //Send money to a bank account
-            economy.bankDeposit(source.substring(5), amount);
-        else
-            //Send money to a Player
-            economy.depositPlayer(source, amount);
-        
-        return true;
-    }
     
     /**
      * Charges a Player a predetermined amount of money
@@ -62,12 +29,12 @@ public class Econ {
         if (cost > 0 && !TextPlayer.hasPermission(player, "free")) {
             //Return false if the Player has insufficient funds
             if (!economy.has(playerName, price)) {
-                player.sendMessage("You need "+format(price)+" to message that user");
+                player.sendMessage("§4You need §6"+format(price)+" §4to message that user");
                 return false;
             }
             
             economy.withdrawPlayer(playerName, price);
-            player.sendMessage("Charged "+format(price)+" to send message");
+            player.sendMessage("§5Charged §6"+format(price)+" §5to send message");
         }
         
         return true;

@@ -1,10 +1,7 @@
 package com.codisimus.plugins.textplayer;
 
 import java.io.*;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Properties;
+import java.util.*;
 import net.milkbowl.vault.economy.Economy;
 import net.milkbowl.vault.permission.Permission;
 import org.bukkit.Server;
@@ -23,10 +20,11 @@ public class TextPlayer extends JavaPlugin {
     public static Permission permission;
     public static Server server;
     private static PluginManager pm;
-    public static Encrypter encrypter = new Encrypter("SeVenTy*7");
+    static Encrypter encrypter = new Encrypter("SeVenTy*7");
     private static Properties p;
-    public static HashMap<String, User> users = new HashMap<String, User>();
-    private static String dataFolder;
+    private static Properties email;
+    static HashMap<String, User> users = new HashMap<String, User>();
+    static String dataFolder;
     static Plugin plugin;
 
     @Override
@@ -35,13 +33,19 @@ public class TextPlayer extends JavaPlugin {
 
     /**
      * Calls methods to load this Plugin when it is enabled
-     *
      */
     @Override
     public void onEnable () {
         server = getServer();
         pm = server.getPluginManager();
         plugin = this;
+        
+        //Disable this plugin if Vault is not present
+        if (!pm.isPluginEnabled("Vault")) {
+            System.err.println("[TextPlayer] Please install Vault in order to use this plugin!");
+            pm.disablePlugin(this);
+            return;
+        }
         
         File dir = this.getDataFolder();
         if (!dir.isDirectory())
@@ -61,26 +65,21 @@ public class TextPlayer extends JavaPlugin {
             pm.enablePlugin(this);
             return;
         }
-
-        file = new File(dataFolder+"/sms.gateways");
-        if (!file.exists())
-            this.saveResource("sms.gateways", true);
         
         file = new File(dataFolder+"/email.properties");
         if (!file.exists())
             try {
-                p = new Properties();
+                email = new Properties();
                 
-                p.setProperty("Username", "");
-                p.setProperty("Password", "");
-                p.setProperty("PasswordEncrypted", "");
-                p.setProperty("SMTPHost", "smtp.gmail.com");
-                p.setProperty("IMAPHost", "imap.gmail.com");
-                p.setProperty("SMTPPort", "25");
-                p.setProperty("IMAPPort", "993");
+                email.setProperty("Username", "");
+                email.setProperty("Password", "");
+                email.setProperty("PasswordEncrypted", "");
+                email.setProperty("POP3Host", "pop.gmail.com");
+                email.setProperty("SMTPHost", "smtp.gmail.com");
+                email.setProperty("SMTPPort", "25");
                 
                 FileOutputStream fos = new FileOutputStream(dataFolder+"/email.properties");
-                p.store(fos, null);
+                email.store(fos, null);
                 fos.close();
             }
             catch (Exception e) {
@@ -100,16 +99,29 @@ public class TextPlayer extends JavaPlugin {
         if (economyProvider != null)
             Econ.economy = economyProvider.getProvider();
         
-        loadData();
+        dir = new File(dataFolder+"/Users");
+        if (!dir.isDirectory()) {
+            dir.mkdir();
+            loadOldData();
+        }
+        else
+            loadData();
 
         //Register Events
         pm.registerEvents(new TextPlayerListener(), this);
+        getServer().getLogger().addHandler(new LogListener());
         
         //Register the command found in the plugin.yml
         TextPlayerCommand.command = (String)this.getDescription().getCommands().keySet().toArray()[0];
         getCommand(TextPlayerCommand.command).setExecutor(new TextPlayerCommand());
         
-        System.out.println("TextPlayer "+this.getDescription().getVersion()+" is enabled!");
+        Properties version = new Properties();
+        try {
+            version.load(this.getResource("version.properties"));
+        }
+        catch (Exception ex) {
+        }
+        System.out.println("TextPlayer "+this.getDescription().getVersion()+" (Build "+version.getProperty("Build")+") is enabled!");
         
         for (Player player: server.getOnlinePlayers())
             TextPlayerListener.online.add(player.getName());
@@ -127,7 +139,6 @@ public class TextPlayer extends JavaPlugin {
     
     /**
      * Loads settings from the config.properties file
-     * 
      */
     public void loadSettings() {
         try {
@@ -155,10 +166,9 @@ public class TextPlayer extends JavaPlugin {
             String passToEncrypt = loadValue("Password");
             TextPlayerMailer.pass = loadValue("PasswordEncrypted");
 
+            TextPlayerMailer.pop3host = loadValue("POP3Host");
             TextPlayerMailer.smtphost = loadValue("SMTPHost");
-            TextPlayerMailer.imaphost = loadValue("IMAPHost");
             TextPlayerMailer.smtpport = Integer.parseInt(loadValue("SMTPPort"));
-            TextPlayerMailer.imapport = Integer.parseInt(loadValue("IMAPPort"));
 
             //Encrypt the password if it is not already encrypted
             if (!passToEncrypt.isEmpty()) {
@@ -207,10 +217,68 @@ public class TextPlayer extends JavaPlugin {
     }
     
     /**
+     * Loads properties for each User from save files
+     */
+    public static void loadData() {
+        FileInputStream fis = null;
+        for (File file: new File(dataFolder+"/Users/").listFiles()) {
+            String name = file.getName();
+            if (name.endsWith(".properties"))
+                try {
+                    //Load the Properties file for reading
+                    Properties p = new Properties();
+                    fis = new FileInputStream(file);
+                    p.load(fis);
+                    fis.close();
+
+                    //Construct a new User using the file name
+                    User user = new User(name.substring(0, name.length() - 11), p.getProperty("Email"));
+                    
+                    user.disableWhenLogged = Boolean.parseBoolean(p.getProperty("DisableWhenLogged"));
+                    user.textLimit = Integer.parseInt(p.getProperty("TextLimit"));
+                    user.textsSent = Integer.parseInt(p.getProperty("TextsSent"));
+                    user.lastText = Integer.parseInt(p.getProperty("LastText"));
+                    
+                    user.watchingServer = Boolean.parseBoolean(p.getProperty("WatchingServer"));
+                    user.watchingErrors = Boolean.parseBoolean(p.getProperty("WatchingErrors"));
+                    
+                    String value = p.getProperty("WhiteList");
+                    if (!value.isEmpty())
+                        user.whiteList = new LinkedList(Arrays.asList(value.split(", ")));
+                    
+                    value = p.getProperty("WatchingPlayers");
+                    if (!value.isEmpty())
+                        user.players = new LinkedList(Arrays.asList(value.split(", ")));
+                    
+                    value = p.getProperty("WatchingItems");
+                    if (!value.isEmpty())
+                        user.items = new LinkedList(Arrays.asList(value.split(", ")));
+                    
+                    value = p.getProperty("WatchingWords");
+                    if (!value.isEmpty())
+                        user.words = new LinkedList(Arrays.asList(value.split(", ")));
+                    
+                    users.put(user.name, user);
+                }
+                catch (Exception loadFailed) {
+                    System.err.println("[TextPlayer] Failed to load "+name);
+                    loadFailed.printStackTrace();
+                }
+                finally {
+                    try {
+                        fis.close();
+                    }
+                    catch (Exception e) {
+                    }
+                }
+        }
+    }
+    
+    /**
      * Loads Users from the save file
      * 
      */
-    private static void loadData() {
+    private static void loadOldData() {
         String line = "";
         
         try {
@@ -231,9 +299,9 @@ public class TextPlayer extends JavaPlugin {
                 if (data.length != 10) {
                     //Update outdated save file
                     if (data[6].contains("server,"))
-                        data[6] = data[6].replaceAll("server,", ",");
+                        data[6] = data[6].replace("server,", ",");
                     if (data[6].contains(",,"))
-                        data[6] = data[6].replaceAll(",,", ",");
+                        data[6] = data[6].replace(",,", ",");
                     if (data[6].equals(","))
                         data[6] = "none";
 
@@ -260,20 +328,22 @@ public class TextPlayer extends JavaPlugin {
                     }
                     
                     users.put(data[0], user);
-                    
-                    save();
                 }
                 else {
                     user.watchingServer = Boolean.parseBoolean(data[6]);
                     
-                    user.players = new LinkedList(Arrays.asList(data[7].substring(1, data[7].length() - 1).split(", ")));
+                    if (data[7].length() > 2)
+                        user.players = new LinkedList(Arrays.asList(data[7].substring(1, data[7].length() - 1).split(", ")));
 
-                    user.items = new LinkedList(Arrays.asList(data[8].substring(1, data[8].length() - 1).split(", ")));
+                    if (data[8].length() > 2)
+                        user.items = new LinkedList(Arrays.asList(data[8].substring(1, data[8].length() - 1).split(", ")));
 
-                    user.words = new LinkedList(Arrays.asList(data[9].substring(1, data[9].length() - 1).split(", ")));
+                    if (data[9].length() > 2)
+                        user.words = new LinkedList(Arrays.asList(data[9].substring(1, data[9].length() - 1).split(", ")));
 
                     users.put(data[0], user);
                 }
+                save(user);
             }
             
             bReader.close();
@@ -286,10 +356,70 @@ public class TextPlayer extends JavaPlugin {
     }
 
     /**
-     * Writes Users to save file
+     * Writes User to save file
      * Old file is overwritten
      */
-    public static void save() {
+    public static void save(User user) {
+        FileOutputStream fos = null;
+        try {
+            Properties p = new Properties();
+            
+            p.setProperty("Email", user.email);
+            p.setProperty("DisableWhenLogged", String.valueOf(user.disableWhenLogged));
+            p.setProperty("TextLimit", String.valueOf(user.textLimit));
+            p.setProperty("TextsSent", String.valueOf(user.textsSent));
+            p.setProperty("LastText", String.valueOf(user.lastText));
+            p.setProperty("WatchingServer", String.valueOf(user.watchingServer));
+            p.setProperty("WatchingErrors", String.valueOf(user.watchingErrors));
+            
+            String value = "";
+            for (String player: user.players)
+                value = value.concat(", "+player);
+            if (!value.isEmpty())
+                value = value.substring(2);
+            p.setProperty("WatchingPlayers", value);
+            
+            value = "";
+            for (String item: user.items)
+                value = value.concat(", "+item);
+            if (!value.isEmpty())
+                value = value.substring(2);
+            p.setProperty("WatchingItems", value);
+            
+            value = "";
+            for (String word: user.words)
+                value = value.concat(", "+word);
+            if (!value.isEmpty())
+                value = value.substring(2);
+            p.setProperty("WatchingWords", value);
+            
+            value = "";
+            for (String player: user.whiteList)
+                value = value.concat(", "+player);
+            if (!value.isEmpty())
+                value = value.substring(2);
+            p.setProperty("WhiteList", value);
+
+            //Write the User Properties to file
+            File file = new File(dataFolder+"/Users/"+user.name+".properties");
+            if (!file.exists())
+                file.createNewFile();
+            
+            fos = new FileOutputStream(file);
+            p.store(fos, null);
+        }
+        catch (Exception saveFailed) {
+            System.err.println("[TextPlayer] Save Failed!");
+            saveFailed.printStackTrace();
+        }
+        finally {
+            try {
+                fos.close();
+            }
+            catch (Exception e) {
+            }
+        }
+        /*
         try {
             BufferedWriter bWriter = new BufferedWriter(new FileWriter("plugins/TextPlayer/emails.save"));
             
@@ -317,6 +447,7 @@ public class TextPlayer extends JavaPlugin {
             System.err.println("[TextPlayer] Save Failed!");
             saveFailed.printStackTrace();
         }
+        */
     }
 
     /**
@@ -351,5 +482,14 @@ public class TextPlayer extends JavaPlugin {
         
         //Return null because the User does not exist
         return null;
+    }
+
+    /**
+     * Returns the Collection of all Users
+     * 
+     * @return The Collection of all Users
+     */
+    public static Collection<User> getUsers() {
+        return users.values();
     }
 }
