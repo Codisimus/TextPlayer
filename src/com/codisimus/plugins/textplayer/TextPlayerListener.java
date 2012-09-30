@@ -22,7 +22,7 @@ public class TextPlayerListener implements Listener {
     /**
      * Sends alerts when Players log off
      * Alerts are delayed for one minute in case the Player logs back in
-     * 
+     *
      * @param event The PlayerQuitEvent that occurred
      */
     @EventHandler (priority = EventPriority.MONITOR)
@@ -45,16 +45,16 @@ public class TextPlayerListener implements Listener {
                 for (User user: TextPlayer.getUsers()) {
                     if ((user.players.contains("*") || user.players.contains(logged.toLowerCase()))
                             && !user.name.equals(logged)) {
-                        TextPlayerMailer.sendMsg(null, user, logged+" has logged off");
+                        TextPlayerMailer.sendMsg(null, user, logged + " has logged off");
                     }
                 }
             }
         }, 1200L);
     }
-    
+
     /**
      * Sends alerts when Players log on
-     * 
+     *
      * @param event The PlayerJoinEvent that occurred
      */
     @EventHandler (priority = EventPriority.MONITOR)
@@ -64,44 +64,44 @@ public class TextPlayerListener implements Listener {
         if (online.contains(logged)) {
             return;
         }
-        
+
         online.add(logged);
-        
+
         //Send an alert to each Player watching the Player who logged
         for (User user: TextPlayer.getUsers()) {
             if ((user.players.contains("*") || user.players.contains(logged.toLowerCase()))
                     && !user.name.equals(logged)) {
-                TextPlayerMailer.sendMsg(null, user, logged+" has logged on");
+                TextPlayerMailer.sendMsg(null, user, logged + " has logged on");
             }
         }
     }
 
     /**
      * Sends alerts when Players speak watched words
-     * 
+     *
      * @param event The PlayerJoinEvent that occurred
      */
     @EventHandler (priority = EventPriority.MONITOR)
     public void onPlayerChat(AsyncPlayerChatEvent event) {
         String msg = event.getMessage();
         String player = event.getPlayer().getName();
-        
+
         //Send an alert to each Player that is watching a word that was spoken
         for (User user: TextPlayer.getUsers()) {
             if (!user.name.equals(player)) {
                 for (String word: user.words) {
                     if (msg.contains(word)) {
-                        TextPlayerMailer.sendMsg(null, user, event.getPlayer().getName()+": "+msg);
+                        TextPlayerMailer.sendMsg(null, user, event.getPlayer().getName() + ": " + msg);
                         break;
                     }
                 }
             }
         }
     }
-    
+
     /**
      * Sends alerts to Players watching TNT
-     * 
+     *
      * @param event The BlockPlaceEvent that occurred
      */
     @EventHandler (priority = EventPriority.MONITOR)
@@ -109,25 +109,25 @@ public class TextPlayerListener implements Listener {
         if (event.isCancelled()) {
             return;
         }
-        
+
         //Cancel if the event was not placing TNT
         if (event.getBlock().getTypeId() != 46) {
             return;
         }
-        
+
         String player = event.getPlayer().getName();
-        
+
         //Send an alert to each Player watching TNT
         for (User user: TextPlayer.getUsers()) {
             if (user.items.contains("tnt")) {
-                TextPlayerMailer.sendMsg(null, user, player+" has placed TNT");
+                TextPlayerMailer.sendMsg(null, user, player + " has placed TNT");
             }
         }
     }
 
     /**
      * Sends alerts to Players watching fire
-     * 
+     *
      * @param event The BlockIgniteEvent that occurred
      */
     @EventHandler (priority = EventPriority.MONITOR)
@@ -135,17 +135,17 @@ public class TextPlayerListener implements Listener {
         if (event.isCancelled()) {
             return;
         }
-        
+
         //Cancel if the event was not caused by a Player
         Player player = event.getPlayer();
         if (player == null) {
             return;
         }
-        
+
         //Send an alert to each Player watching fire
         for (User user: TextPlayer.getUsers()) {
             if (user.items.contains("fire")) {
-                TextPlayerMailer.sendMsg(null, user, player.getName()+" has lit a fire");
+                TextPlayerMailer.sendMsg(null, user, player.getName() + " has lit a fire");
             }
         }
     }

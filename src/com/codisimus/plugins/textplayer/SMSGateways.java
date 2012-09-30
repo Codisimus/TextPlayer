@@ -2,7 +2,7 @@ package com.codisimus.plugins.textplayer;
 
 /**
  * A List of supported Carriers and their SMS Gateways
- * 
+ *
  * @author Codisimus
  */
 public class SMSGateways {

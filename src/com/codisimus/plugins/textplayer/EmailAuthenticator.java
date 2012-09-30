@@ -5,7 +5,6 @@ import javax.mail.PasswordAuthentication;
 
 /**
  * Authenticates the Username and Password of an email account
- *
  */
 public class EmailAuthenticator extends Authenticator {
     private String user;
@@ -13,7 +12,7 @@ public class EmailAuthenticator extends Authenticator {
 
     /**
      * Constructs a new Authenticator with the given Username and Password
-     * 
+     *
      * @param username The given Username
      * @param password The given Password
      */
@@ -25,7 +24,7 @@ public class EmailAuthenticator extends Authenticator {
 
     /**
      * Returns a new Password Authenticator
-     * 
+     *
      * @return A new Password Authenticator
      */
     @Override

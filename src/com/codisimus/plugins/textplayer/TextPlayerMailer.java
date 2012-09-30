@@ -36,14 +36,14 @@ public class TextPlayerMailer {
     public static void sendMsg(final Player player, final User user, final String text) {
         //Notify the Server log if set to in the config
         if (notify) {
-            System.out.println("[TextPlayer] Sending Message...");
+            TextPlayer.logger.info("Sending Message...");
         }
-        
+
         //Notify the Player if there is one
         if (player != null) {
             player.sendMessage("§5Sending Message...");
         }
-        
+
         //Start a new Thread
         TextPlayer.server.getScheduler().scheduleAsyncDelayedTask(TextPlayer.plugin, new Runnable() {
             @Override
@@ -52,7 +52,7 @@ public class TextPlayerMailer {
                 if (user.email.isEmpty()) {
                     //Notify the Server log if set to in the config
                     if (notify) {
-                        System.out.println("[TextPlayer] User has not set their Number/E-mail");
+                        TextPlayer.logger.info("User has not set their Number/E-mail");
                     }
 
                     //Notify the Player if there is one
@@ -62,13 +62,13 @@ public class TextPlayerMailer {
 
                     return;
                 }
-                    
+
                 //Cancel if the User is online and has disabled when logged set to true
                 if (user.disableWhenLogged && TextPlayerListener.online.contains(user.name)
                         && !text.startsWith("[TextPlayer] ")) {
                     //Notify the Server log if set to in the config
                     if (notify) {
-                        System.out.println("[TextPlayer] User is currently online");
+                        TextPlayer.logger.info("User is currently online");
                     }
 
                     //Notify the Player if there is one
@@ -83,7 +83,7 @@ public class TextPlayerMailer {
                 if (user.textLimit < 0 && !text.startsWith("[TextPlayer] ")) {
                     //Notify the Server log if set to in the config
                     if (notify) {
-                        System.out.println("[TextPlayer] User's Number/Email has not been verified");
+                        TextPlayer.logger.info("User's Number/Email has not been verified");
                     }
 
                     //Notify the Player if there is one
@@ -108,7 +108,7 @@ public class TextPlayerMailer {
                         if (user.textsSent >= user.textLimit) {
                             //Notify the Server log if set to in the config
                             if (notify) {
-                                System.out.println("[TextPlayer] User maxed out their text limit");
+                                TextPlayer.logger.info("User maxed out their text limit");
                             }
 
                             //Notify the Player if there is one
@@ -148,7 +148,7 @@ public class TextPlayerMailer {
 
                     //Notify the Server log if set to in the config
                     if (notify) {
-                        System.out.println("[TextPlayer] Message Sent!");
+                        TextPlayer.logger.info("Message Sent!");
                     }
 
                     //Notify the Player if there is one
@@ -158,7 +158,7 @@ public class TextPlayerMailer {
                 } catch (Exception sendFailed) {
                     //Notify the Server log if set to in the config
                     if (notify) {
-                        System.out.println("[TextPlayer] Send Failed");
+                        TextPlayer.logger.info("Send Failed");
                     }
 
                     //Notify the Player if there is one
@@ -171,7 +171,7 @@ public class TextPlayerMailer {
             }
         }, 0L);
     }
-    
+
     public static void checkMail() {
         processing = true;
         try {
@@ -180,7 +180,7 @@ public class TextPlayerMailer {
                 store.connect(username, TextPlayer.encrypter.decrypt(pass));
             }
             Folder inbox = store.getFolder("INBOX");
-            
+
             //Check if there is new mail
             while (inbox.getMessageCount() > 0) {
                 //Read each Message
@@ -196,7 +196,7 @@ public class TextPlayerMailer {
                             if (user != null) {
                                 //Display debug information in the Server log if set to in the config
                                 if (debug) {
-                                    System.out.println("[TextPlayer](Debug) Message received from: "+user.name);
+                                    TextPlayer.logger.info("(Debug) Message received from: " + user.name);
                                 }
 
                                 break;
@@ -206,24 +206,24 @@ public class TextPlayerMailer {
                         if (user == null) {
                             //Notify the Server log if set to in the config
                             if (notify) {
-                                System.out.println("[TextPlayer] Message from unknown address, Message thrown out");
+                                TextPlayer.logger.info("Message from unknown address, Message thrown out");
                             }
 
                             //Display debug information in the Server log if set to in the config
                             if (debug) {
-                                System.out.println("[TextPlayer](Debug) Unknown address: "+message.getFrom());
+                                TextPlayer.logger.info("(Debug) Unknown address: " + message.getFrom());
                             }
                         } else {
                             String msg = getMsg(message);
                             //Display debug information in the Server log if set to in the config
                             if (debug) {
-                                System.out.println("[TextPlayer](Debug) Message received: "+msg);
+                                TextPlayer.logger.info("(Debug) Message received: " + msg);
                             }
 
                             msg = cleanUp(msg);
                             //Display debug information in the Server log if set to in the config
                             if (debug) {
-                                System.out.println("[TextPlayer](Debug) Message after clean-up: "+msg);
+                                TextPlayer.logger.info("(Debug) Message after clean-up: " + msg);
                             }
 
                             String[] split = msg.split(" ");
@@ -234,16 +234,16 @@ public class TextPlayerMailer {
                                     //Set the User as verified
                                     user.textLimit = 0;
                                     user.save();
-                                    sendMsg(null, user, "[TextPlayer] Number/Email linked to "+user.name);
+                                    sendMsg(null, user, "[TextPlayer] Number/Email linked to " + user.name);
                                 } else {
-                                    sendMsg(null, user, "[TextPlayer] Reply 'enable' to link this number to "+user.name);
+                                    sendMsg(null, user, "[TextPlayer] Reply 'enable' to link this number to " + user.name);
                                 }
                             } else {
                                 try {
                                     Action action = Action.valueOf(split[0].toUpperCase());
                                     switch (action) {
                                     case ENABLE:
-                                        sendMsg(null, user, "[TextPlayer] Number/Email linked to "+user.name);
+                                        sendMsg(null, user, "[TextPlayer] Number/Email linked to " + user.name);
                                         break;
 
                                     case DISABLE: //Set the User as not verified
@@ -258,7 +258,7 @@ public class TextPlayerMailer {
                                     case PLAYERLIST: //Construct a Player count/list to send
                                         String list = "Player Count: "+TextPlayer.server.getOnlinePlayers().length;
                                         for (Player player : TextPlayer.server.getOnlinePlayers()) {
-                                            list = list.concat(", "+player.getName());
+                                            list = list.concat(", " + player.getName());
                                         }
 
                                         sendMsg(null, user, list);
@@ -267,17 +267,17 @@ public class TextPlayerMailer {
                                     case FIND: //Find if a Player is online
                                         Player foundPlayer = TextPlayer.server.getPlayer(split[1].trim());
                                         String status = foundPlayer == null ? "online" : "offline";
-                                        sendMsg(null, user, foundPlayer.getName()+" is currently "+status);
+                                        sendMsg(null, user, foundPlayer.getName() + " is currently " + status);
                                         break;
 
                                     case TELL: //Whisper a message to a Player
                                         Player player = TextPlayer.server.getPlayer(split[1]);
                                         if (player == null) {
-                                            sendMsg(null, user, player.getName()+" is currently offline");
+                                            sendMsg(null, user, player.getName() + " is currently offline");
                                         }
                                         else {
-                                            player.sendMessage("§5Text from §6"+user.name+"§f: §2"+
-                                                    msg.substring(split[0].length() + split[1].length() + 1));
+                                            player.sendMessage("§5Text from §6" + user.name+"§f: §2"
+                                                    + msg.substring(split[0].length() + split[1].length() + 1));
                                         }
 
                                         break;
@@ -287,14 +287,14 @@ public class TextPlayerMailer {
                                         if (user2 == null) {
                                             sendMsg(null, user, split[1]+" does not have a TextPlayer account");
                                         } else {
-                                            sendMsg(null, user, "Text from "+user.name+":"+
-                                                    msg.substring(split[0].length() + split[1].length() + 1));
+                                            sendMsg(null, user, "Text from " + user.name+":"
+                                                    + msg.substring(split[0].length() + split[1].length() + 1));
                                         }
 
                                         break;
 
                                     case SAY: //Broadcast a message
-                                        TextPlayer.server.broadcastMessage("§5[TextPlayer] "+user.name+":§f"+msg.substring(3));
+                                        TextPlayer.server.broadcastMessage("§5[TextPlayer] " + user.name + ":§f" + msg.substring(3));
                                         break;
 
                                     default: break;
@@ -320,11 +320,10 @@ public class TextPlayerMailer {
                                 }
                             }
                         }
-                    }
-                    catch (Exception e) {
+                    } catch (Exception e) {
                         //Notify the Server log if set to in the config
                         if (notify) {
-                            System.out.println("[TextPlayer] Error reading email, Message thrown out");
+                            TextPlayer.logger.info("Error reading email, Message thrown out");
                         }
 
                         if (debug) {
@@ -335,18 +334,17 @@ public class TextPlayerMailer {
                     //Delete the Message after reading it
                     message.setFlag(Flags.Flag.DELETED, true);
                 }
-                
+
                 inbox.close(true);
                 store.close();
             }
-        }
-        catch (Exception ex) {
-            System.out.println("[TextPlayer] Could not read incoming mail!");
+        } catch (Exception ex) {
+            TextPlayer.logger.info("Could not read incoming mail!");
             ex.printStackTrace();
         }
         processing = false;
     }
-    
+
     /**
      * Returns the given Message as a String
      * 
@@ -359,7 +357,7 @@ public class TextPlayerMailer {
         if (message.isMimeType("multipart/*")) {
             BufferedReader br = new BufferedReader(new InputStreamReader(message.getInputStream()));
             String line = br.readLine();
-            
+
             while (line != null) {
                 if (line.contains("<br>")) {
                     return line.replace("<br>", "\n");
@@ -375,13 +373,13 @@ public class TextPlayerMailer {
         } else if (message.isMimeType("text/*")) {
             return streamToString(message.getInputStream());
         }
-        
+
         return "";
     }
-    
+
     /**
      * Returns the given InputStream as a String
-     * 
+     *
      * @param is The given InputStream
      * @return The String representation of the InputStream
      * @throws Exception If anything goes wrong
@@ -391,10 +389,10 @@ public class TextPlayerMailer {
         if (is == null) {
             return "";
         }
-        
+
         Writer writer = new StringWriter();
         char[] buffer = new char[1024];
-        
+
         try {
             Reader reader = new BufferedReader(new InputStreamReader(is, "UTF-8"));
             int n;
@@ -404,13 +402,13 @@ public class TextPlayerMailer {
         } finally {
             is.close();
         }
-        
+
         return writer.toString();
     }
-    
+
     /**
      * Cleans up the given String
-     * 
+     *
      * @param msg The String to be cleaned
      * @return The cleaned String
      */
@@ -419,29 +417,28 @@ public class TextPlayerMailer {
         if (msg.contains("RE:")) {
             msg = msg.replace("RE:", "");
         }
-        
+
         //Eliminate white space before the first word
         while (msg.startsWith(" ") || msg.startsWith("/") || msg.startsWith("\n")) {
             msg = msg.substring(msg.startsWith("\n") ? 2 : 1);
         }
-        
+
         //Throw out everything but the first line and trim white space off of the end
         msg = msg.split("\n")[0].trim();
-        
+
         //Change the first letter to lowercase and return the String
         msg = msg.length() > 2 ? msg.substring(0, 1).toLowerCase().concat(msg.substring(1)) : msg.toLowerCase();
         return msg;
     }
-    
+
     /**
      * Checks for new email
-     * 
      */
     public static void MailListener() {
         Properties props = System.getProperties();
         props.put("mail.smtp.starttls.enable", "true");
         props.put("mail.smtp.auth", "true");
-	props.put("mail.pop3.host", pop3host);
+        props.put("mail.pop3.host", pop3host);
         if (pop3host.equals("pop.gmail.com")) {
             // Start SSL connection
             props.put("mail.pop3.socketFactory" , 995 );
@@ -456,14 +453,13 @@ public class TextPlayerMailer {
             store = session.getStore("pop3");
             transport = session.getTransport("smtp");
         } catch (Exception ex) {
-            System.err.println("[TextPlayer] Cannot read incoming mail!");
+            TextPlayer.logger.severe("Cannot read incoming mail!");
             ex.printStackTrace();
         }
         
         if (interval == 0) {
-            System.out.println("[TextPlayer] Only checking for new mail on command "+'"'+"/text check"+'"');
-        }
-        else {
+            TextPlayer.logger.info("Only checking for new mail on command " + '"' + "/text check" + '"');
+        } else {
             TextPlayer.server.getScheduler().scheduleAsyncRepeatingTask(TextPlayer.plugin, new Runnable() {
                 @Override
                 public void run() {
@@ -472,14 +468,13 @@ public class TextPlayerMailer {
                     }
                 }
             }, 0L, 20L * interval);
-            
-            System.out.println("[TextPlayer] Checking for new mail every "+interval+" seconds");
+
+            TextPlayer.logger.info("Checking for new mail every " + interval + " seconds");
         }
     }
-    
+
     /**
      * Checks for new email
-     * 
      */
     public static void forceCheck(final Player player) {
         TextPlayer.server.getScheduler().scheduleAsyncDelayedTask(TextPlayer.plugin, new Runnable() {
@@ -491,13 +486,13 @@ public class TextPlayerMailer {
                     }
                     return;
                 }
-                
+
                 if (player != null) {
                     player.sendMessage("§5Checking for new mail...");
                 }
-                
+
                 checkMail();
-                
+
                 if (player != null) {
                     player.sendMessage("§5Finished checking for new mail.");
                 }

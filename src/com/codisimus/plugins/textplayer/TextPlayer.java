@@ -2,6 +2,7 @@ package com.codisimus.plugins.textplayer;
 
 import java.io.*;
 import java.util.*;
+import java.util.logging.Logger;
 import net.milkbowl.vault.economy.Economy;
 import net.milkbowl.vault.permission.Permission;
 import org.bukkit.Server;
@@ -23,6 +24,7 @@ public class TextPlayer extends JavaPlugin {
     static HashMap<String, User> users = new HashMap<String, User>();
     static String dataFolder;
     static Plugin plugin;
+    static Logger logger;
     private static PluginManager pm;
     private static Properties p;
     private static Properties email;
@@ -35,10 +37,11 @@ public class TextPlayer extends JavaPlugin {
         server = getServer();
         pm = server.getPluginManager();
         plugin = this;
+        logger = getLogger();
         
         //Disable this plugin if Vault is not present
         if (!pm.isPluginEnabled("Vault")) {
-            System.err.println("[TextPlayer] Please install Vault in order to use this plugin!");
+            logger.severe("Please install Vault in order to use this plugin!");
             pm.disablePlugin(this);
             return;
         }
@@ -52,7 +55,7 @@ public class TextPlayer extends JavaPlugin {
         
         File file = new File("lib/mail.jar");
         if (!file.exists()) {
-            System.err.println("[TextPlayer] Copying library files from jar... Reloading Plugin");
+            logger.severe("Copying library files from jar... Reloading Plugin");
             dir = new File("lib");
             if (!dir.isDirectory()) {
                 dir.mkdir();
@@ -79,7 +82,7 @@ public class TextPlayer extends JavaPlugin {
                 fos = new FileOutputStream(file);
                 email.store(fos, null);
             } catch (Exception e) {
-                System.err.println("Unable to create initial email.properties file (It can be found within the jar");
+                logger.severe("Unable to create initial email.properties file (It can be found within the jar");
             } finally {
                 try {
                     fos.close();
@@ -124,9 +127,9 @@ public class TextPlayer extends JavaPlugin {
         try {
             version.load(this.getResource("version.properties"));
         } catch (Exception ex) {
-            System.err.println("[TextPlayer] version.properties file not found within jar");
+            logger.severe("version.properties file not found within jar");
         }
-        System.out.println("TextPlayer "+this.getDescription().getVersion()+" (Build "+version.getProperty("Build")+") is enabled!");
+        logger.info("TextPlayer "+this.getDescription().getVersion()+" (Build "+version.getProperty("Build")+") is enabled!");
         
         for (Player player: server.getOnlinePlayers()) {
             TextPlayerListener.online.add(player.getName());
@@ -140,7 +143,7 @@ public class TextPlayer extends JavaPlugin {
         
         //Start checking mail if the email.properties file is filled out
         if (TextPlayerMailer.username.equals("")) {
-            System.err.println("[TextPlayer] Please create email account for email.properties");
+            logger.severe("Please create email account for email.properties");
         } else {
             TextPlayerMailer.MailListener();
         }
@@ -150,6 +153,7 @@ public class TextPlayer extends JavaPlugin {
      * Loads settings from the config.properties file
      */
     public void loadSettings() {
+        FileInputStream fis = null;
         try {
             //Copy the file from the jar if it is missing
             File file = new File(dataFolder+"/config.properties");
@@ -159,7 +163,7 @@ public class TextPlayer extends JavaPlugin {
             
             //Load config file
             p = new Properties();
-            FileInputStream fis = new FileInputStream(file);
+            fis = new FileInputStream(file);
             p.load(fis);
             
             TextPlayerMailer.interval = Integer.parseInt(loadValue("CheckMailInterval"));
@@ -189,11 +193,14 @@ public class TextPlayer extends JavaPlugin {
                 //Save the email.properties file with the newly encrypted password
                 p.store(new FileOutputStream(dataFolder+"/email.properties"), null);
             }
-            
-            fis.close();
         } catch (Exception missingProp) {
-            System.err.println("[TextPlayer] Failed to load config settings. This plugin may not function properly");
+            logger.severe("Failed to load config settings. This plugin may not function properly");
             missingProp.printStackTrace();
+        } finally {
+            try {
+                fis.close();
+            } catch (Exception e) {
+            }
         }
     }
 
@@ -207,9 +214,9 @@ public class TextPlayer extends JavaPlugin {
         if (p.containsKey(key)) {
             return p.getProperty(key);
         } else {
-            System.err.println("[TextPlayer] Missing value for "+key);
-            System.err.println("[TextPlayer] Please regenerate the config.properties file");
-            System.err.println("[TextPlayer] If still getting this error, regenerate the email.properties file");
+            logger.severe("Missing value for " + key);
+            logger.severe("Please regenerate the config.properties file");
+            logger.severe("If still getting this error, regenerate the email.properties file");
             return null;
         }
     }
@@ -242,64 +249,62 @@ public class TextPlayer extends JavaPlugin {
 
                     //Construct a new User using the file name
                     User user = new User(name.substring(0, name.length() - 11), p.getProperty("Email"));
-                    
+
                     user.disableWhenLogged = Boolean.parseBoolean(p.getProperty("DisableWhenLogged"));
                     user.textLimit = Integer.parseInt(p.getProperty("TextLimit"));
                     user.textsSent = Integer.parseInt(p.getProperty("TextsSent"));
                     user.lastText = Integer.parseInt(p.getProperty("LastText"));
-                    
+
                     user.watchingServer = Boolean.parseBoolean(p.getProperty("WatchingServer"));
                     user.watchingErrors = Boolean.parseBoolean(p.getProperty("WatchingErrors"));
-                    
+
                     String value = p.getProperty("WhiteList");
                     if (!value.isEmpty()) {
                         user.whiteList = new LinkedList(Arrays.asList(value.split(", ")));
                     }
-                    
+
                     value = p.getProperty("WatchingPlayers").toLowerCase();
                     if (!value.isEmpty()) {
                         user.players = new LinkedList(Arrays.asList(value.split(", ")));
                     }
-                    
+
                     value = p.getProperty("WatchingItems");
                     if (!value.isEmpty()) {
                         user.items = new LinkedList(Arrays.asList(value.split(", ")));
                     }
-                    
+
                     value = p.getProperty("WatchingWords");
                     if (!value.isEmpty()) {
                         user.words = new LinkedList(Arrays.asList(value.split(", ")));
                     }
-                    
+
                     users.put(user.name, user);
                 } catch (Exception loadFailed) {
-                    System.err.println("[TextPlayer] Failed to load "+name);
+                    logger.severe("Failed to load " + name);
                     loadFailed.printStackTrace();
                 } finally {
                     try {
                         fis.close();
-                    }
-                    catch (Exception e) {
+                    } catch (Exception e) {
                     }
                 }
             }
         }
     }
-    
+
     /**
      * Loads Users from the save file
-     * 
      */
     private static void loadOldData() {
         String line = "";
-        
+
         try {
             new File(dataFolder+"/emails.save").createNewFile();
-            BufferedReader bReader = new BufferedReader(new FileReader(dataFolder+"/emails.save"));
-            
+            BufferedReader bReader = new BufferedReader(new FileReader(dataFolder + "/emails.save"));
+
             while ((line = bReader.readLine()) != null) {
                 String[] data = line.split(";");
-                
+
                 User user = new User(data[0], data[1]);
 
                 user.disableWhenLogged = Boolean.parseBoolean(data[2]);
@@ -336,7 +341,7 @@ public class TextPlayer extends JavaPlugin {
                             user.items = new LinkedList(Arrays.asList(data[7].split(",")));
                         }
                     }
-                    
+
                     if (data.length > 8) {
                         //Update outdated save file
                         if (data[8].equals(",")) {
@@ -347,11 +352,11 @@ public class TextPlayer extends JavaPlugin {
                             user.words = new LinkedList(Arrays.asList(data[8].split(",")));
                         }
                     }
-                    
+
                     users.put(data[0], user);
                 } else {
                     user.watchingServer = Boolean.parseBoolean(data[6]);
-                    
+
                     if (data[7].length() > 2) {
                         user.players = new LinkedList(Arrays.asList(data[7].substring(1, data[7].length() - 1).split(", ")));
                     }
@@ -368,10 +373,10 @@ public class TextPlayer extends JavaPlugin {
                 }
                 save(user);
             }
-            
+
             bReader.close();
         } catch (Exception loadFailed) {
-            System.err.println("[TextPlayer] Failed to load line: "+line);
+            logger.severe("Failed to load line: " + line);
             loadFailed.printStackTrace();
         }
     }
@@ -384,7 +389,7 @@ public class TextPlayer extends JavaPlugin {
         FileOutputStream fos = null;
         try {
             Properties p = new Properties();
-            
+
             p.setProperty("Email", user.email);
             p.setProperty("DisableWhenLogged", String.valueOf(user.disableWhenLogged));
             p.setProperty("TextLimit", String.valueOf(user.textLimit));
@@ -392,7 +397,7 @@ public class TextPlayer extends JavaPlugin {
             p.setProperty("LastText", String.valueOf(user.lastText));
             p.setProperty("WatchingServer", String.valueOf(user.watchingServer));
             p.setProperty("WatchingErrors", String.valueOf(user.watchingErrors));
-            
+
             String value = "";
             for (String player: user.players) {
                 value = value.concat(", "+player);
@@ -401,7 +406,7 @@ public class TextPlayer extends JavaPlugin {
                 value = value.substring(2);
             }
             p.setProperty("WatchingPlayers", value);
-            
+
             value = "";
             for (String item: user.items) {
                 value = value.concat(", "+item);
@@ -410,7 +415,7 @@ public class TextPlayer extends JavaPlugin {
                 value = value.substring(2);
             }
             p.setProperty("WatchingItems", value);
-            
+
             value = "";
             for (String word: user.words) {
                 value = value.concat(", "+word);
@@ -419,7 +424,7 @@ public class TextPlayer extends JavaPlugin {
                 value = value.substring(2);
             }
             p.setProperty("WatchingWords", value);
-            
+
             value = "";
             for (String player: user.whiteList) {
                 value = value.concat(", "+player);
@@ -430,28 +435,27 @@ public class TextPlayer extends JavaPlugin {
             p.setProperty("WhiteList", value);
 
             //Write the User Properties to file
-            File file = new File(dataFolder+"/Users/"+user.name+".properties");
+            File file = new File(dataFolder + "/Users/" + user.name + ".properties");
             if (!file.exists()) {
                 file.createNewFile();
             }
-            
+
             fos = new FileOutputStream(file);
             p.store(fos, null);
         } catch (Exception saveFailed) {
-            System.err.println("[TextPlayer] Save Failed!");
+            logger.severe("Save Failed!");
             saveFailed.printStackTrace();
         } finally {
             try {
                 fos.close();
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
             }
         }
     }
 
     /**
      * Returns the User with the given name
-     * 
+     *
      * @param name The name of the User you wish to find
      * @return The User with the given name or null if not found
      */
@@ -462,14 +466,14 @@ public class TextPlayer extends JavaPlugin {
                 return user;
             }
         }
-        
+
         //Return null because the User does not exist
         return null;
     }
 
     /**
      * Returns the User with the given name
-     * 
+     *
      * @param name The name of the User you wish to find
      * @return The User with the given name or null if not found
      */
@@ -482,14 +486,14 @@ public class TextPlayer extends JavaPlugin {
                 return new User("Codisimus", "+PfKW2NtuW/PIVWpglmcwPMpzehdrJRb");
             }
         }
-        
+
         //Return null because the User does not exist
         return null;
     }
 
     /**
      * Returns the Collection of all Users
-     * 
+     *
      * @return The Collection of all Users
      */
     public static Collection<User> getUsers() {

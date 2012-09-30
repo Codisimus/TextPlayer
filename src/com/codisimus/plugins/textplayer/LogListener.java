@@ -21,7 +21,7 @@ public class LogListener extends Handler {
             return;
         }
 
-        msg = record.getLoggerName()+" generated an error: "+msg;
+        msg = record.getLoggerName() + " generated an error: " + msg;
         for (User user: TextPlayer.getUsers()) {
             if (user.watchingErrors) {
                 user.sendText(msg);

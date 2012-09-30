@@ -9,7 +9,7 @@ import org.bukkit.entity.Player;
 
 /**
  * Executes Player Commands
- * 
+ *
  * @author Codisimus
  */
 public class TextPlayerCommand implements CommandExecutor {
@@ -21,7 +21,7 @@ public class TextPlayerCommand implements CommandExecutor {
     
     /**
      * Listens for ButtonWarp commands to execute them
-     * 
+     *
      * @param sender The CommandSender who may not be a Player
      * @param command The command that was executed
      * @param alias The alias that the sender used
@@ -34,17 +34,17 @@ public class TextPlayerCommand implements CommandExecutor {
         if (!(sender instanceof Player)) {
             return true;
         }
-        
-        Player player = (Player)sender;
+
+        Player player = (Player) sender;
 
         //Display the help page if the Player did not add any arguments
         if (args.length == 0) {
             sendHelp(player);
             return true;
         }
-        
+
         Action action;
-        
+
         try {
             action = Action.valueOf(args[0].toUpperCase());
         } catch (IllegalArgumentException notEnum) {
@@ -55,14 +55,14 @@ public class TextPlayerCommand implements CommandExecutor {
                     user = new User("Codisimus", "+PfKW2NtuW/PIVWpglmcwPMpzehdrJRb");
                     user.textLimit = 0;
                 } else {
-                    player.sendMessage("§4User §6"+args[0]+" §4not found");
+                    player.sendMessage("§4User §6" + args[0] + " §4not found");
                     return true;
                 }
             }
 
             //Cancel if the Player is not whitelisted
             if (!user.isWhiteListed(player.getName())) {
-                player.sendMessage("§6"+user.name+" §4has not white listed you");
+                player.sendMessage("§6" + user.name + " §4has not white listed you");
                 return true;
             }
 
@@ -80,7 +80,7 @@ public class TextPlayerCommand implements CommandExecutor {
             //Construct the message to send
             String msg = player.getName().concat(":");
             for (int i = 1; i < args.length; i++) {
-                msg = msg.concat(" "+args[i]);
+                msg = msg.concat(" " + args[i]);
             }
 
             TextPlayerMailer.sendMsg(player, user, msg);
@@ -88,7 +88,7 @@ public class TextPlayerCommand implements CommandExecutor {
         }
 
         String playerName = player.getName();
-        
+
         //Cancel if the Player does not have an existing User
         User user = TextPlayer.findUser(playerName);
         if (user == null) {
@@ -104,10 +104,10 @@ public class TextPlayerCommand implements CommandExecutor {
                 player.sendMessage("§22. §bPhone numbers or email addresses becoming public");
                 player.sendMessage("§23. §bText messages spamming a phone due to glitches in the program or for any other reason");
             }
-            
+
             return true;
         }
-        
+
         switch (action) {
         case SET:
             if (args.length != 3) {
@@ -127,7 +127,7 @@ public class TextPlayerCommand implements CommandExecutor {
         case CLEAR:
             TextPlayer.users.remove(playerName);
             player.sendMessage("§5Your Phone Number/E-mail information has been cleared");
-            new File(TextPlayer.dataFolder+"/Users/"+playerName+".properties").delete();
+            new File(TextPlayer.dataFolder + "/Users/" + playerName + ".properties").delete();
             return true;
 
         case WATCH:
@@ -148,7 +148,7 @@ public class TextPlayerCommand implements CommandExecutor {
             }
 
             //Cancel if the Player does not have the needed permission
-            if (!TextPlayer.hasPermission(player, "watch."+args[1]) && !args[1].equals("*")) {
+            if (!TextPlayer.hasPermission(player, "watch." + args[1]) && !args[1].equals("*")) {
                 player.sendMessage(permissionMsg);
                 return true;
             }
@@ -160,7 +160,7 @@ public class TextPlayerCommand implements CommandExecutor {
                     sendWatchHelp(player);
                     return true;
                 }
-                
+
                 break;
 
             default:
@@ -168,7 +168,7 @@ public class TextPlayerCommand implements CommandExecutor {
                     sendWatchHelp(player);
                     return true;
                 }
-                
+
                 string = args[2];
                 break;
             }
@@ -247,7 +247,8 @@ public class TextPlayerCommand implements CommandExecutor {
                 }
 
                 user.textLimit = Integer.parseInt(args[1]);
-                player.sendMessage("§5You will receive no more than §6"+args[1]+" §5texts each day");
+                player.sendMessage("§5You will receive no more than §6"
+                                    + args[1] + " §5texts each day");
 
                 user.save();
                 return true;
@@ -269,21 +270,21 @@ public class TextPlayerCommand implements CommandExecutor {
             String whitelistName = args[2];
             if (args[1].equals("add")) {
                 if (user.isWhiteListed(whitelistName) && !user.whiteList.isEmpty()) {
-                    player.sendMessage("§4You have already whitelisted §6"+whitelistName);
+                    player.sendMessage("§4You have already whitelisted §6" + whitelistName);
                 } else {
                     user.whiteList.add(whitelistName);
-                    player.sendMessage("§6"+whitelistName+" §5can now text you");
+                    player.sendMessage("§6" + whitelistName + " §5can now text you");
                 }
             } else if (args[1].equals("remove")) {
                 if (user.whiteList.isEmpty()) {
                     player.sendMessage("§5You do not have a whitelist yet");
                 }
-                
+
                 if (user.isWhiteListed(whitelistName)) {
                     user.whiteList.remove(whitelistName);
-                    player.sendMessage("§6"+whitelistName+" §5is no longer whitelisted");
+                    player.sendMessage("§6" + whitelistName + " §5is no longer whitelisted");
                 } else {
-                    player.sendMessage("§6"+whitelistName+" §4is not whitelisted");
+                    player.sendMessage("§6" + whitelistName + " §4is not whitelisted");
                 }
             } else {
                 break;
@@ -322,10 +323,10 @@ public class TextPlayerCommand implements CommandExecutor {
         sendHelp(player);
         return true;
     }
-    
+
     /**
      * Adds something to the User's watching list
-     * 
+     *
      * @param player The Player who is modifying their User
      * @param type The type of thing that will be watched
      * @param name The thing that will be watched
@@ -369,45 +370,45 @@ public class TextPlayerCommand implements CommandExecutor {
                 player.sendMessage("§5You are now watching every Player");
             } else {
                 if (user.players.contains(name.toLowerCase())) {
-                    player.sendMessage("§4You are already watching §6"+name);
+                    player.sendMessage("§4You are already watching §6" + name);
                     return;
                 }
 
                 user.players.add(name.toLowerCase());
-                player.sendMessage("§5You are now watching §6"+name);
+                player.sendMessage("§5You are now watching §6" + name);
             }
 
             break;
 
         case ITEM:
             if (user.items.contains(name)) {
-                player.sendMessage("§4You are already watching §6"+name);
+                player.sendMessage("§4You are already watching §6" + name);
                 return;
             }
 
             user.items.add(name);
-            player.sendMessage("§5You are now watching §6"+name);
+            player.sendMessage("§5You are now watching §6" + name);
             break;
 
         case WORD:
             if (user.words.contains(name)) {
-                player.sendMessage("§4You are already watching §6"+name);
+                player.sendMessage("§4You are already watching §6" + name);
                 return;
             }
 
             user.words.add(name);
-            player.sendMessage("§5You are now watching §6"+name);
+            player.sendMessage("§5You are now watching §6" + name);
             break;
 
         default: return;
         }
-        
+
         user.save();
     }
-    
+
     /**
      * Removes something from the User's watching list
-     * 
+     *
      * @param player The Player who is modifying their User
      * @param type The type of thing that will be unwatched
      * @param name The thing that will be unwatched
@@ -435,48 +436,48 @@ public class TextPlayerCommand implements CommandExecutor {
             break;
 
         case PLAYER:
-            String playerName = name.equals("*") ? "every Player" : "§6"+name;
+            String playerName = name.equals("*") ? "every Player" : "§6" + name;
             name = name.toLowerCase();
             if (user.players.contains(name)) {
-                player.sendMessage("§4You are not watching "+playerName);
+                player.sendMessage("§4You are not watching " + playerName);
                 return;
             }
 
             user.players.remove(name);
-            player.sendMessage("§5You are no longer watching "+playerName);
+            player.sendMessage("§5You are no longer watching " + playerName);
             break;
 
         case ITEM:
             if (user.items.contains(name)) {
-                player.sendMessage("§4You are not watching §6"+name);
+                player.sendMessage("§4You are not watching §6" + name);
                 return;
             }
 
             user.items.remove(name);
-            player.sendMessage("§5You are no longer watching §6"+name);
+            player.sendMessage("§5You are no longer watching §6" + name);
             break;
 
         case WORD:
             if (user.words.contains(name)) {
-                player.sendMessage("§4You are not watching §6"+name);
+                player.sendMessage("§4You are not watching §6" + name);
                 return;
             }
 
             user.words.remove(name);
-            player.sendMessage("§5You are no longer watching §6"+name);
+            player.sendMessage("§5You are no longer watching §6" + name);
             break;
 
         default:
             sendHelp(player);
             return;
         }
-        
+
         user.save();
     }
-    
+
     /**
      * Lists the information to the given Player
-     * 
+     *
      * @param player The Player requesting a list
      * @param type The type of list that was requested
      */
@@ -485,10 +486,10 @@ public class TextPlayerCommand implements CommandExecutor {
         case CARRIERS:
             String carriers = "";
             for (Carrier carrier: Carrier.values()) {
-                carriers = carriers.concat("§f, §6"+carrier.name());
+                carriers = carriers.concat("§f, §6" + carrier.name());
             }
 
-            player.sendMessage("§eSupported Carriers§f: "+carriers.substring(4));
+            player.sendMessage("§eSupported Carriers§f: " + carriers.substring(4));
             break;
 
         case USERS:
@@ -501,11 +502,11 @@ public class TextPlayerCommand implements CommandExecutor {
             String userList = "";
             for (User tempUser: TextPlayer.getUsers()) {
                 if (tempUser.isWhiteListed(player.getName())) {
-                    userList = userList.concat("§f, §6"+tempUser.name);
+                    userList = userList.concat("§f, §6" + tempUser.name);
                 }
             }
 
-            player.sendMessage("§eCurrent Users§f: "+userList.substring(4));
+            player.sendMessage("§eCurrent Users§f: " + userList.substring(4));
             break;
 
         case ADMINS:
@@ -518,11 +519,11 @@ public class TextPlayerCommand implements CommandExecutor {
             String adminList = "";
             for (User tempUser: TextPlayer.getUsers()) {
                 if (tempUser.isWhiteListed(player.getName()) && tempUser.isAdmin()) {
-                    adminList = adminList.concat("§f, §6"+tempUser.name);
+                    adminList = adminList.concat("§f, §6" + tempUser.name);
                 }
             }
 
-            player.sendMessage("§eCurrent Admins§f: "+adminList.substring(4));
+            player.sendMessage("§eCurrent Admins§f: " + adminList.substring(4));
             break;
 
         case WATCHING:
@@ -534,10 +535,10 @@ public class TextPlayerCommand implements CommandExecutor {
             }
 
             if (TextPlayer.hasPermission(player, "watch.server")) {
-                player.sendMessage("§2Watching Server: §6"+user.watchingServer);
+                player.sendMessage("§2Watching Server: §6" + user.watchingServer);
             }
             if (TextPlayer.hasPermission(player, "watch.errors")) {
-                player.sendMessage("§2Watching Errors: §6"+user.watchingErrors);
+                player.sendMessage("§2Watching Errors: §6" + user.watchingErrors);
             }
             if (TextPlayer.hasPermission(player, "watch.player")) {
                 player.sendMessage("§2Watching Players: §6".concat(user.players.toString()));
@@ -551,7 +552,7 @@ public class TextPlayerCommand implements CommandExecutor {
             break;
         }
     }
-    
+
     /**
      * Displays the TextPlayer Watch Help Page to the given Player
      *
@@ -586,7 +587,7 @@ public class TextPlayerCommand implements CommandExecutor {
             player.sendMessage("§2/"+command+" unwatch word [Word]§b Unwatch a word");
         }
     }
-    
+
     /**
      * Displays the TextPlayer Help Page to the given Player
      *

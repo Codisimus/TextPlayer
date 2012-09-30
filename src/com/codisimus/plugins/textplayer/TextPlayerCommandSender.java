@@ -15,7 +15,7 @@ import org.bukkit.plugin.Plugin;
  */
 public class TextPlayerCommandSender implements CommandSender {
     User user;
-    
+
     public TextPlayerCommandSender(User user) {
         this.user = user;
     }
