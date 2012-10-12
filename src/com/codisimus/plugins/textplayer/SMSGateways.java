@@ -12,7 +12,7 @@ public class SMSGateways {
     chinamobile, clarobrazil, cricket, csl, d1, edgewireless, eplus, esendexuk,
     esendexusa, esendexspain, etisalat, fido, freebiesms, googlevoice, koodo, lmt,
     metropcs, mobistar, mts, netcom, ntelos, optimus, optus, orange, o2germany,
-    o2uk, o2usa, pcmobile, rogers, sfr, softbank, sprint, starhub, sunrise,
+    o2uk, o2usa, pcmobile, pioneer, rogers, sfr, softbank, sprint, starhub, sunrise,
     swisscom, tdc, telecom, telenor, tele2, telia, telstra, telus, three, tmn,
     tmobile, tmobileczech, tmobilegermany, tmobilenetherlands, uscellular,
     verizon, virginmobile, virginmobilecanada, vivo, vodafonegermany,
@@ -68,6 +68,7 @@ public class SMSGateways {
         case o2uk: return number+"@o2imail.co.uk";
         case o2usa: return number+"@mobile.celloneusa.com";
         case pcmobile: return number+"@mobiletxt.ca";
+        case pioneer: return number+"@msg.pioneerenidcellular.com";
         case rogers: return number+"@pcs.rogers.com";
         case sfr: return number+"@sfr.fr";
         case softbank: return number+"@softbank.ne.jp";

@@ -2,6 +2,7 @@ package com.codisimus.plugins.textplayer;
 
 import com.codisimus.plugins.textplayer.SMSGateways.Carrier;
 import java.util.LinkedList;
+import java.util.Random;
 import org.bukkit.entity.Player;
 
 /**
@@ -14,7 +15,8 @@ public class User {
     static Encrypter encrypter = new Encrypter("SeVenTy*7"); 
 
     public String name;
-    public String email; //An encrypted version of the User's email address
+    public String emailOut; //An encrypted version of the User's email address
+    public String emailIn = "";
     public boolean disableWhenLogged = true; //If true, texts will only be sent when the Player is offline
     public int textLimit = -1;
     public int textsSent = 0;
@@ -34,7 +36,7 @@ public class User {
      */
     public User (String name) {
         this.name = name;
-        email = "";
+        emailOut = "";
     }
 
     /**
@@ -45,7 +47,7 @@ public class User {
      */
     public User (String name, String email) {
         this.name = name;
-        this.email = email;
+        this.emailOut = email;
     }
 
     /**
@@ -65,12 +67,12 @@ public class User {
      * @return The message that will be sent to the Player
      */
     public void setEmail(Player player, String carrierName, String address) {
-        String old = email;
+        String old = emailOut;
 
         if (carrierName.equals("email")) {
             //Verify the format of the given email address
             if (address.matches("^[_A-Za-z0-9-]+(\\.[_A-Za-z0-9-]+)*@[A-Za-z0-9]+(\\.[A-Za-z0-9]+)*(\\.[A-Za-z]{2,})$")) {
-                email = address;
+                emailOut = address;
             } else {
                 player.sendMessage("§4Invalid e-mail address");
                 return;
@@ -100,26 +102,33 @@ public class User {
             }
 
             //Format the email address with the given number and carrier
-            email = SMSGateways.format(address, carrier);
+            emailOut = SMSGateways.format(address, carrier);
         }
 
         //Encrypt the new email address
-        email = encrypter.encrypt(email);
+        emailOut = encrypter.encrypt(emailOut);
 
         //Return if it is not a new email address
-        if (email.equals(old)) {
+        if (emailOut.equals(old)) {
             player.sendMessage("§4That is already your current E-mail");
             return;
         }
 
-        player.sendMessage("§5E-mail set to§f: §6" + encrypter.decrypt(email));
+        player.sendMessage("§5E-mail set to§f: §6" + encrypter.decrypt(emailOut));
+
+        //Generate a unique four digit confirmation code
+        int confirmationCode = (int) (Math.random() * 9999) + 1000;
+        while (TextPlayer.findUserByCode(confirmationCode) != null) {
+            confirmationCode = (int) (Math.random() * 9999) + 1000;
+        }
 
         //Send confirmation text
         player.sendMessage("§5Sending Confirmation Text...");
-        TextPlayerMailer.sendMsg(player, this, "[TextPlayer] Reply 'enable' to link this number to "+name);
+        TextPlayerMailer.sendMsg(player, this, "[TextPlayer] Reply '"
+                + confirmationCode + "' to link this number to " + name);
 
         //Set the User as not verified
-        textLimit = -1;
+        textLimit = -confirmationCode;
         save();
     }
 

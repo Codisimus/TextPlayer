@@ -51,13 +51,8 @@ public class TextPlayerCommand implements CommandExecutor {
             //Cancel if the first argument is not a valid User
             User user = TextPlayer.findUser(args[0]);
             if (user == null) {
-                if (args[0].equals("Codisimus")) {
-                    user = new User("Codisimus", "+PfKW2NtuW/PIVWpglmcwPMpzehdrJRb");
-                    user.textLimit = 0;
-                } else {
-                    player.sendMessage("§4User §6" + args[0] + " §4not found");
-                    return true;
-                }
+                player.sendMessage("§4User §6" + args[0] + " §4not found");
+                return true;
             }
 
             //Cancel if the Player is not whitelisted
@@ -314,6 +309,10 @@ public class TextPlayerCommand implements CommandExecutor {
                 player.sendMessage(permissionMsg);
             }
 
+            return true;
+
+        case AGREE:
+            player.sendMessage("§5You have agreed to the Terms of Use");
             return true;
 
         case HELP: break;

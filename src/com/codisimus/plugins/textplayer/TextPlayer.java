@@ -34,6 +34,9 @@ public class TextPlayer extends JavaPlugin {
      */
     @Override
     public void onEnable () {
+        //Fix for JAF/JavaMail
+        Thread.currentThread().setContextClassLoader(this.getClass().getClassLoader());
+        
         server = getServer();
         pm = server.getPluginManager();
         plugin = this;
@@ -61,13 +64,13 @@ public class TextPlayer extends JavaPlugin {
                 dir.mkdir();
             }
             this.saveResource("mail.jar", true);
-            new File(dataFolder+"/mail.jar").renameTo(file);
+            new File(dataFolder + "/mail.jar").renameTo(file);
             pm.disablePlugin(this);
             pm.enablePlugin(this);
             return;
         }
         
-        file = new File(dataFolder+"/email.properties");
+        file = new File(dataFolder + "/email.properties");
         if (!file.exists()) {
             email = new Properties();
             email.setProperty("Username", "");
@@ -82,7 +85,7 @@ public class TextPlayer extends JavaPlugin {
                 fos = new FileOutputStream(file);
                 email.store(fos, null);
             } catch (Exception e) {
-                logger.severe("Unable to create initial email.properties file (It can be found within the jar");
+                logger.severe("Unable to create initial email.properties file (It can be found within the jar)");
             } finally {
                 try {
                     fos.close();
@@ -107,7 +110,7 @@ public class TextPlayer extends JavaPlugin {
             Econ.economy = economyProvider.getProvider();
         }
         
-        dir = new File(dataFolder+"/Users");
+        dir = new File(dataFolder + "/Users");
         if (!dir.isDirectory()) {
             dir.mkdir();
             loadOldData();
@@ -129,7 +132,7 @@ public class TextPlayer extends JavaPlugin {
         } catch (Exception ex) {
             logger.severe("version.properties file not found within jar");
         }
-        logger.info("TextPlayer "+this.getDescription().getVersion()+" (Build "+version.getProperty("Build")+") is enabled!");
+        logger.info("TextPlayer " + this.getDescription().getVersion() + " (Build "+version.getProperty("Build") + ") is enabled!");
         
         for (Player player: server.getOnlinePlayers()) {
             TextPlayerListener.online.add(player.getName());
@@ -156,7 +159,7 @@ public class TextPlayer extends JavaPlugin {
         FileInputStream fis = null;
         try {
             //Copy the file from the jar if it is missing
-            File file = new File(dataFolder+"/config.properties");
+            File file = new File(dataFolder + "/config.properties");
             if (!file.exists()) {
                 this.saveResource("config.properties", true);
             }
@@ -174,7 +177,7 @@ public class TextPlayer extends JavaPlugin {
             Econ.cost = Integer.parseInt(loadValue("CostToText"));
             Econ.costAdmin = Integer.parseInt(loadValue("CostToTextAnAdmin"));
 
-            p.load(new FileInputStream(dataFolder+"/email.properties"));
+            p.load(new FileInputStream(dataFolder + "/email.properties"));
 
             TextPlayerMailer.username = loadValue("Username");
             String passToEncrypt = loadValue("Password");
@@ -191,7 +194,7 @@ public class TextPlayer extends JavaPlugin {
                 p.setProperty("Password", "");
 
                 //Save the email.properties file with the newly encrypted password
-                p.store(new FileOutputStream(dataFolder+"/email.properties"), null);
+                p.store(new FileOutputStream(dataFolder + "/email.properties"), null);
             }
         } catch (Exception missingProp) {
             logger.severe("Failed to load config settings. This plugin may not function properly");
@@ -237,7 +240,7 @@ public class TextPlayer extends JavaPlugin {
      */
     public static void loadData() {
         FileInputStream fis = null;
-        for (File file: new File(dataFolder+"/Users/").listFiles()) {
+        for (File file: new File(dataFolder + "/Users/").listFiles()) {
             String name = file.getName();
             if (name.endsWith(".properties")) {
                 try {
@@ -249,6 +252,8 @@ public class TextPlayer extends JavaPlugin {
 
                     //Construct a new User using the file name
                     User user = new User(name.substring(0, name.length() - 11), p.getProperty("Email"));
+                    
+                    user.emailIn = p.containsKey("EmailIn") ? p.getProperty("EmailIn") : "";
 
                     user.disableWhenLogged = Boolean.parseBoolean(p.getProperty("DisableWhenLogged"));
                     user.textLimit = Integer.parseInt(p.getProperty("TextLimit"));
@@ -299,8 +304,11 @@ public class TextPlayer extends JavaPlugin {
         String line = "";
 
         try {
-            new File(dataFolder+"/emails.save").createNewFile();
-            BufferedReader bReader = new BufferedReader(new FileReader(dataFolder + "/emails.save"));
+            File file = new File(dataFolder + "/emails.save");
+            if (!file.exists()) {
+                return;
+            }
+            BufferedReader bReader = new BufferedReader(new FileReader(file));
 
             while ((line = bReader.readLine()) != null) {
                 String[] data = line.split(";");
@@ -390,7 +398,8 @@ public class TextPlayer extends JavaPlugin {
         try {
             Properties p = new Properties();
 
-            p.setProperty("Email", user.email);
+            p.setProperty("Email", user.emailOut);
+            p.setProperty("EmailIn", user.emailIn);
             p.setProperty("DisableWhenLogged", String.valueOf(user.disableWhenLogged));
             p.setProperty("TextLimit", String.valueOf(user.textLimit));
             p.setProperty("TextsSent", String.valueOf(user.textsSent));
@@ -480,14 +489,28 @@ public class TextPlayer extends JavaPlugin {
     public static User findUserByEmail(String email) {
         //Iterate through all Users to find the one with the given Name
         for (User user: users.values()) {
-            if (user.email != null && email.contains(TextPlayer.encrypter.decrypt(user.email))) {
+            if (!user.emailIn.isEmpty() && email.equals(TextPlayer.encrypter.decrypt(user.emailIn))) {
                 return user;
-            } else if (email.contains(TextPlayer.encrypter.decrypt("+PfKW2NtuW/PIVWpglmcwPMpzehdrJRb"))) {
-                return new User("Codisimus", "+PfKW2NtuW/PIVWpglmcwPMpzehdrJRb");
             }
         }
 
         //Return null because the User does not exist
+        return null;
+    }
+
+    /**
+     * Returns the User with the given Confirmation Code
+     *
+     * @param code The Confirmation Code for the User
+     * @return The User with the given Code or null if not found
+     */
+    public static User findUserByCode(int code) {
+        code = -code;
+        for (User user: users.values()) {
+            if (user.textLimit == code) {
+                return user;
+            }
+        }
         return null;
     }
 
