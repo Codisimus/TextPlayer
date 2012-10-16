@@ -60,6 +60,7 @@ public class TextPlayerMailer {
     private static final String MULTIPART_TYPE = "multipart/*";
     private static final String TEXT_TYPE = "text/plain";
     private static final String HTML_TYPE = "text/html";
+    private static final String OTHER_TYPE = "other";
 
     public static void sendMsg(final Player player, final User user, final String text) {
         //Notify the Server log if set to in the config
@@ -220,12 +221,12 @@ public class TextPlayerMailer {
                 try {
                     String msg = getMsg(message);
                     if (debug) {
-                        TextPlayer.logger.log(Level.INFO, "(Debug) Message received: {0}", msg);
+                        TextPlayer.logger.log(Level.INFO, "(Debug) Message received: " + msg);
                     }
 
                     msg = cleanUp(msg);
                     if (debug) {
-                        TextPlayer.logger.log(Level.INFO, "(Debug) Message after clean-up: {0}", msg);
+                        TextPlayer.logger.log(Level.INFO, "(Debug) Message after clean-up: " + msg);
                     }
 
                     String[] split = msg.split(" ");
@@ -250,19 +251,19 @@ public class TextPlayerMailer {
                             user.save();
                             user.sendText(TEXTPLAYER_TAG + "Number/Email linked to " + user.name);
                             if (debug) {
-                                TextPlayer.logger.log(Level.INFO, "(Debug) Address was succesfully linked to {0}", user.name);
+                                TextPlayer.logger.log(Level.INFO, "(Debug) Address was succesfully linked to " + user.name);
                             }
                         } else {
                             if (notify) {
                                 TextPlayer.logger.info("Message from unknown address, Message thrown out");
                             }
                             if (debug) {
-                                TextPlayer.logger.log(Level.INFO, "(Debug) Unknown address: {0}", message.getFrom());
+                                TextPlayer.logger.log(Level.INFO, "(Debug) Unknown address: " + address);
                             }
                         }
                     } else {
                         if (debug) {
-                            TextPlayer.logger.log(Level.INFO, "(Debug) Message received from: {0}", user.name);
+                            TextPlayer.logger.log(Level.INFO, "(Debug) Message received from: " + user.name);
                         }
 
                         try {
@@ -376,71 +377,85 @@ public class TextPlayerMailer {
      * @throws Exception If anything goes wrong
      */
     private static String getMsg(Message message) throws Exception {
-        HashMap<String, Part> parts = findMimeTypes(message);
-        Part p = parts.get(parts.containsKey(TEXT_TYPE)
-                                    ? TEXT_TYPE
-                                    : HTML_TYPE);
-        return p == null ? "" : streamToString(p.getInputStream());
+        HashMap<String, InputStream> parts = findMimeTypes(message);
+        InputStream is = null;
+        if (parts.containsKey(TEXT_TYPE)) {
+            is = parts.get(TEXT_TYPE);
+        } else if (parts.containsKey(HTML_TYPE)) {
+            is = parts.get(HTML_TYPE);
+        } else if (parts.containsKey(OTHER_TYPE)) {
+            is = parts.get(OTHER_TYPE);
+        }
+
+        return streamToString(is);
     }
 
-    public static HashMap<String, Part> findMimeTypes(Part p) {
-        HashMap<String, Part> parts = new HashMap<String, Part>();
+    public static HashMap<String, InputStream> findMimeTypes(Part p) {
+        HashMap<String, InputStream> parts = new HashMap<String, InputStream>();
         findMimeTypesHelper(p, parts);
         return parts;
     }
 
     // a little recursive helper function that actually does all the work.
-    public static void findMimeTypesHelper(Part p, HashMap<String, Part> parts) {
+    public static void findMimeTypesHelper(Part p, HashMap<String, InputStream> parts) {
         try {
-            if (p.isMimeType(MULTIPART_TYPE)) {
-                Object content = p.getContent();
-                if (content instanceof MimeMultipart) {
-                    MimeMultipart mmp = (MimeMultipart) p.getContent();
-                    for (int i = 0; i < mmp.getCount(); i++) {
-                        findContentTypesHelper(mmp.getBodyPart(i), parts);
-                    }
-                } else {
-                    Multipart mp = (Multipart) p.getContent();
-                    for (int i = 0; i < mp.getCount(); i++) {
-                        findContentTypesHelper(mp.getBodyPart(i), parts);
-                    }
-                }
-            } else if (p.isMimeType(TEXT_TYPE)) {
+            if (p.isMimeType(TEXT_TYPE)) {
                 if (!parts.containsKey(TEXT_TYPE)) {
-                    parts.put(TEXT_TYPE, p);
+                    parts.put(TEXT_TYPE, p.getInputStream());
                 }
             } else if (p.isMimeType(HTML_TYPE)) {
                 if (!parts.containsKey(HTML_TYPE)) {
-                    parts.put(HTML_TYPE, p);
+                    parts.put(HTML_TYPE, p.getInputStream());
+                }
+            } else {
+                Object content = p.getContent();
+                if (content instanceof MimeMultipart) {
+                    MimeMultipart mmp = (MimeMultipart) content;
+                    for (int i = 0; i < mmp.getCount(); i++) {
+                        findContentTypesHelper(mmp.getBodyPart(i), parts);
+                    }
+                } else if (content instanceof Multipart) {
+                    Multipart mp = (Multipart) content;
+                    for (int i = 0; i < mp.getCount(); i++) {
+                        findContentTypesHelper(mp.getBodyPart(i), parts);
+                    }
+                } else { //if (content instanceof SharedByteArrayInputStream) {
+                    if (!parts.containsKey(OTHER_TYPE)) {
+                        parts.put(OTHER_TYPE, p.getInputStream());
+                    }
                 }
             }
-        } catch( Exception ex ) {
+        } catch(Exception ex) {
             ex.printStackTrace();
         }
     }
 
-    private static void findContentTypesHelper(Part p, HashMap<String, Part> parts) throws MessagingException, IOException {
+    private static void findContentTypesHelper(Part p, HashMap<String, InputStream> parts) throws MessagingException, IOException {
         try {
-            if (p.isMimeType(MULTIPART_TYPE) ) {
+            if (p.isMimeType(TEXT_TYPE)) {
+                parts.put(TEXT_TYPE, p.getInputStream());
+            } else if (p.isMimeType(HTML_TYPE)) {
+                parts.put(HTML_TYPE, p.getInputStream());
+            } else {
                 Object content = p.getContent();
                 if (content instanceof MimeMultipart) {
-                    MimeMultipart mmp = (MimeMultipart) p.getContent();
+                    MimeMultipart mmp = (MimeMultipart) content;
                     System.err.println(mmp.getPreamble());
                     for (int i = 0; i < mmp.getCount(); i++) {
                         findContentTypesHelper(mmp.getBodyPart(i), parts);
                     }
-                } else {
-                    Multipart mp = (Multipart) p.getContent();
+                } else if (content instanceof Multipart) {
+                    Multipart mp = (Multipart) content;
                     for (int i = 0; i < mp.getCount(); i++) {
                         findContentTypesHelper(mp.getBodyPart(i), parts);
                     }
+                } else { //if (content instanceof SharedByteArrayInputStream) {
+                    if (!parts.containsKey(OTHER_TYPE)) {
+                        parts.put(OTHER_TYPE, p.getInputStream());
+                    }
                 }
-            } else if (p.isMimeType(TEXT_TYPE)) {
-                parts.put(TEXT_TYPE, p);
-            } else if (p.isMimeType(HTML_TYPE)) {
-                parts.put(HTML_TYPE, p);
-            }
-        } catch(UnsupportedEncodingException ex) {
+            } 
+        } catch(Exception ex) {
             ex.printStackTrace();
         }
     }

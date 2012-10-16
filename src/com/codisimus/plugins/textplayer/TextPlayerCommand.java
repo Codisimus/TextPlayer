@@ -14,7 +14,8 @@ import org.bukkit.entity.Player;
  */
 public class TextPlayerCommand implements CommandExecutor {
     static String command;
-    private static enum Action { AGREE, HELP, CHECK, SET, CLEAR, WATCH, UNWATCH, ENABLE, DISABLE, LIMIT, WHITELIST, LIST }
+    private static enum Action { AGREE, HELP, CHECK, SET, CLEAR, WATCH,
+    UNWATCH, ENABLE, DISABLE, LIMIT, WHITELIST, MASS, LIST }
     private static enum WatchType { PLAYER, SERVER, ITEM, WORD, ERRORS }
     private static enum ListType { CARRIERS, USERS, ADMINS, WATCHING }
     private static String permissionMsg = "§4You do not have permission to do that";
@@ -51,7 +52,24 @@ public class TextPlayerCommand implements CommandExecutor {
             //Cancel if the first argument is not a valid User
             User user = TextPlayer.findUser(args[0]);
             if (user == null) {
-                player.sendMessage("§4User §6" + args[0] + " §4not found");
+                if (args[0].equals("all")) { //mass text
+                    //Cancel if the Player does not have the needed permission
+                    if (!TextPlayer.hasPermission(player, "masstext")) {
+                        player.sendMessage(permissionMsg);
+                        return true;
+                    }
+
+                    //Construct the message to send
+                    String msg = player.getName().concat(":");
+                    for (int i = 1; i < args.length; i++) {
+                        msg = msg.concat(" " + args[i]);
+                    }
+
+                    TextPlayer.massText(msg);
+                    player.sendMessage("§5Mass text has been sent!");
+                } else {
+                    player.sendMessage("§4User §6" + args[0] + " §4not found");
+                }
                 return true;
             }
 
@@ -272,7 +290,7 @@ public class TextPlayerCommand implements CommandExecutor {
                 }
             } else if (args[1].equals("remove")) {
                 if (user.whiteList.isEmpty()) {
-                    player.sendMessage("§5You do not have a whitelist yet");
+                    player.sendMessage("§4You do not have a whitelist yet");
                 }
 
                 if (user.isWhiteListed(whitelistName)) {
@@ -287,6 +305,23 @@ public class TextPlayerCommand implements CommandExecutor {
 
             user.save();
             return true;
+
+        case MASS:
+            if (args.length != 2) {
+                break;
+            }
+
+            if (args[2].equals("optout")) {
+                user.massTextOptOut = true;
+                player.sendMessage("§5You will not receive mass texts that are sent from the Server");
+                return true;
+            } else if (args[2].equals("optin")) {
+                user.massTextOptOut = false;
+                player.sendMessage("§5You will receive mass texts that are sent from the Server");
+                return true;
+            } else {
+                break;
+            }
 
         case LIST:
             if (args.length != 2) {
@@ -598,6 +633,9 @@ public class TextPlayerCommand implements CommandExecutor {
         if (TextPlayer.hasPermission(player, "text")) {
             player.sendMessage("§2/"+command+" [Name] [Message]§b Send message to User");
         }
+        if (TextPlayer.hasPermission(player, "masstext")) {
+            player.sendMessage("§2/"+command+" all [Message]§b Send message to all Users");
+        }
         if (TextPlayer.hasPermission(player, "use")) {
             player.sendMessage("§2/"+command+" set [Carrier] [Number]§b Receive messages to phone");
             player.sendMessage("§2/"+command+" set email [Address]§b Receive messages to email address");
@@ -607,6 +645,7 @@ public class TextPlayerCommand implements CommandExecutor {
             player.sendMessage("§2/"+command+" limit [Number]§b Limit number of texts received each day");
             player.sendMessage("§2/"+command+" whitelist add [Player]§b Allow the Player to text you");
             player.sendMessage("§2/"+command+" whitelist remove [Player]§b Remove the Player");
+            player.sendMessage("§2/"+command+" mass optout§b Opt out of receiving mass texts from the server");
         }
         player.sendMessage("§2/"+command+" list carriers§b List supported Carriers");
         if (TextPlayer.hasPermission(player, "listusers")) {

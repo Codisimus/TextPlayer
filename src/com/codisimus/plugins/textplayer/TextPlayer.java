@@ -263,6 +263,10 @@ public class TextPlayer extends JavaPlugin {
                     user.watchingServer = Boolean.parseBoolean(p.getProperty("WatchingServer"));
                     user.watchingErrors = Boolean.parseBoolean(p.getProperty("WatchingErrors"));
 
+                    if (p.contains("MassTextOptOut")) {
+                        user.massTextOptOut = Boolean.parseBoolean(p.getProperty("MassTextOptOut"));
+                    }
+
                     String value = p.getProperty("WhiteList");
                     if (!value.isEmpty()) {
                         user.whiteList = new LinkedList(Arrays.asList(value.split(", ")));
@@ -406,6 +410,7 @@ public class TextPlayer extends JavaPlugin {
             p.setProperty("LastText", String.valueOf(user.lastText));
             p.setProperty("WatchingServer", String.valueOf(user.watchingServer));
             p.setProperty("WatchingErrors", String.valueOf(user.watchingErrors));
+            p.setProperty("MassTextOptOut", String.valueOf(user.massTextOptOut));
 
             String value = "";
             for (String player: user.players) {
@@ -504,7 +509,7 @@ public class TextPlayer extends JavaPlugin {
      * @param code The Confirmation Code for the User
      * @return The User with the given Code or null if not found
      */
-    public static User findUserByCode(int code) {
+    protected static User findUserByCode(int code) {
         code = -code;
         for (User user: users.values()) {
             if (user.textLimit == code) {
@@ -521,5 +526,13 @@ public class TextPlayer extends JavaPlugin {
      */
     public static Collection<User> getUsers() {
         return users.values();
+    }
+
+    public static void massText(String message) {
+        for (User user: TextPlayer.getUsers()) {
+            if (!user.massTextOptOut) {
+                TextPlayerMailer.sendMsg(null, user, message);
+            }
+        }
     }
 }

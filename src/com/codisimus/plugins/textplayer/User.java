@@ -18,6 +18,7 @@ public class User {
     public String emailOut; //An encrypted version of the User's email address
     public String emailIn = "";
     public boolean disableWhenLogged = true; //If true, texts will only be sent when the Player is offline
+    public boolean massTextOptOut = false; //If true, texts will only be sent when the Player is offline
     public int textLimit = -1;
     public int textsSent = 0;
     public int lastText = 0; //The day that the last text was sent to this User
