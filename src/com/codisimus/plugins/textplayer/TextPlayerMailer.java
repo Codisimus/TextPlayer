@@ -5,18 +5,15 @@ import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Properties;
 import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.activation.DataSource;
+import javax.activation.FileDataSource;
+import javax.mail.*;
 import javax.mail.Flags.Flag;
-import javax.mail.Folder;
-import javax.mail.Message;
-import javax.mail.MessagingException;
-import javax.mail.Multipart;
-import javax.mail.Part;
-import javax.mail.Session;
-import javax.mail.Store;
-import javax.mail.Transport;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
+import javax.mail.util.ByteArrayDataSource;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import sun.misc.BASE64Decoder;
@@ -46,7 +43,7 @@ public class TextPlayerMailer {
     private static boolean processing;
     private static Transport transport;
     private static int mailListenerID;
-    
+
     /* Strings */
     private static final String SENDING = "Sending Message...";
     private static final String NO_EMAIL = "User has not set their Number/E-mail";
@@ -219,9 +216,12 @@ public class TextPlayerMailer {
             //Read each Message
             for (Message message: inbox.getMessages()) {
                 try {
+                    if (debug) {
+                        TextPlayer.logger.log(Level.INFO, "(Debug) Message received: " + streamToString(message.getInputStream()));
+                    }
                     String msg = getMsg(message);
                     if (debug) {
-                        TextPlayer.logger.log(Level.INFO, "(Debug) Message received: " + msg);
+                        TextPlayer.logger.log(Level.INFO, "(Debug) Message body: " + msg);
                     }
 
                     msg = cleanUp(msg);
@@ -383,8 +383,12 @@ public class TextPlayerMailer {
             is = parts.get(TEXT_TYPE);
         } else if (parts.containsKey(HTML_TYPE)) {
             is = parts.get(HTML_TYPE);
-        } else if (parts.containsKey(OTHER_TYPE)) {
-            is = parts.get(OTHER_TYPE);
+        } else {
+            is = message.getInputStream();
+            DataSource source = new ByteArrayDataSource(is, MULTIPART_TYPE);
+            Multipart mp = new MimeMultipart(source);
+            parts = findMimeTypes(mp.getBodyPart(0));
+            is = parts.get(TEXT_TYPE);
         }
 
         return streamToString(is);
@@ -393,6 +397,17 @@ public class TextPlayerMailer {
     public static HashMap<String, InputStream> findMimeTypes(Part p) {
         HashMap<String, InputStream> parts = new HashMap<String, InputStream>();
         findMimeTypesHelper(p, parts);
+        return parts;
+    }
+
+    public static HashMap<String, InputStream> findMimeTypes(Multipart mp) {
+        HashMap<String, InputStream> parts = new HashMap<String, InputStream>();
+        try {
+            for (int i = 0; i < mp.getCount(); i++) {
+                findMimeTypesHelper(mp.getBodyPart(i), parts);
+            }
+        } catch (Exception ex) {
+        }
         return parts;
     }
 
@@ -412,49 +427,22 @@ public class TextPlayerMailer {
                 if (content instanceof MimeMultipart) {
                     MimeMultipart mmp = (MimeMultipart) content;
                     for (int i = 0; i < mmp.getCount(); i++) {
-                        findContentTypesHelper(mmp.getBodyPart(i), parts);
+                        findMimeTypesHelper(mmp.getBodyPart(i), parts);
                     }
                 } else if (content instanceof Multipart) {
                     Multipart mp = (Multipart) content;
                     for (int i = 0; i < mp.getCount(); i++) {
-                        findContentTypesHelper(mp.getBodyPart(i), parts);
+                        findMimeTypesHelper(mp.getBodyPart(i), parts);
                     }
-                } else { //if (content instanceof SharedByteArrayInputStream) {
-                    if (!parts.containsKey(OTHER_TYPE)) {
-                        parts.put(OTHER_TYPE, p.getInputStream());
+                } else {
+                    DataSource source = new ByteArrayDataSource(p.getInputStream(), MULTIPART_TYPE);
+                    Multipart mp = new MimeMultipart(source);
+                    parts = findMimeTypes(mp.getBodyPart(0));
+                    for (int i = 0; i < mp.getCount(); i++) {
+                        findMimeTypesHelper(mp.getBodyPart(i), parts);
                     }
                 }
             }
-        } catch(Exception ex) {
-            ex.printStackTrace();
-        }
-    }
-
-    private static void findContentTypesHelper(Part p, HashMap<String, InputStream> parts) throws MessagingException, IOException {
-        try {
-            if (p.isMimeType(TEXT_TYPE)) {
-                parts.put(TEXT_TYPE, p.getInputStream());
-            } else if (p.isMimeType(HTML_TYPE)) {
-                parts.put(HTML_TYPE, p.getInputStream());
-            } else {
-                Object content = p.getContent();
-                if (content instanceof MimeMultipart) {
-                    MimeMultipart mmp = (MimeMultipart) content;
-                    System.err.println(mmp.getPreamble());
-                    for (int i = 0; i < mmp.getCount(); i++) {
-                        findContentTypesHelper(mmp.getBodyPart(i), parts);
-                    }
-                } else if (content instanceof Multipart) {
-                    Multipart mp = (Multipart) content;
-                    for (int i = 0; i < mp.getCount(); i++) {
-                        findContentTypesHelper(mp.getBodyPart(i), parts);
-                    }
-                } else { //if (content instanceof SharedByteArrayInputStream) {
-                    if (!parts.containsKey(OTHER_TYPE)) {
-                        parts.put(OTHER_TYPE, p.getInputStream());
-                    }
-                }
-            } 
         } catch(Exception ex) {
             ex.printStackTrace();
         }
@@ -519,19 +507,21 @@ public class TextPlayerMailer {
      */
     public static void MailListener() {
         Properties props = System.getProperties();
-        props.put("mail.smtp.starttls.enable", "true");
-        props.put("mail.smtp.auth", "true");
-        props.put("mail.pop3.host", pop3host);
+        props.setProperty("mail.smtp.ssl.trust", "smtpserver");
+        props.setProperty("mail.smtp.starttls.enable", "true");
+        props.setProperty("mail.smtp.auth", "true");
+        props.setProperty("mail.pop3.host", pop3host);
         if (pop3host.equals("pop.gmail.com")) {
             // Start SSL connection
-            props.put("mail.pop3.socketFactory" , "995");
-            props.put("mail.pop3.socketFactory.class" , "javax.net.ssl.SSLSocketFactory");
-            props.put("mail.pop3.port" , "995");
+            props.setProperty("mail.pop3.socketFactory" , "995");
+            props.setProperty("mail.pop3.socketFactory.class" , "javax.net.ssl.SSLSocketFactory");
+            props.setProperty("mail.pop3.port" , "995");
         }
 
         //Verify the Username and Password
         session = Session.getDefaultInstance(props,
                 new EmailAuthenticator(username, TextPlayer.encrypter.decrypt(pass)));
+        //session.setDebug(debug);
         try {
             store = session.getStore("pop3");
             transport = session.getTransport("smtp");
@@ -552,7 +542,7 @@ public class TextPlayerMailer {
                 }
             }, 0L, 20L * interval);
 
-            TextPlayer.logger.log(Level.INFO, "Checking for new mail every {0} seconds", interval);
+            TextPlayer.logger.info("Checking for new mail every " + interval + " seconds");
         }
     }
 

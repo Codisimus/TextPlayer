@@ -3,6 +3,8 @@ package com.codisimus.plugins.textplayer;
 import java.io.*;
 import java.util.*;
 import java.util.logging.Logger;
+import javax.activation.CommandMap;
+import javax.activation.MailcapCommandMap;
 import net.milkbowl.vault.economy.Economy;
 import net.milkbowl.vault.permission.Permission;
 import org.bukkit.Server;
@@ -34,28 +36,35 @@ public class TextPlayer extends JavaPlugin {
      */
     @Override
     public void onEnable () {
-        //Fix for JAF/JavaMail
+        //System.setProperty("javax.activation.debug", "true");
+
         Thread.currentThread().setContextClassLoader(this.getClass().getClassLoader());
-        
+        //MailcapCommandMap cMap = (MailcapCommandMap) CommandMap.getDefaultCommandMap();
+        //cMap.addMailcap("text/plain; ; x-java-content-handler=com.sun.mail.handlers.text_plain");
+        //cMap.addMailcap("text/html; ; x-java-content-handler=com.sun.mail.handlers.text_html");
+        //cMap.addMailcap("text/xml; ; x-java-content-handler=com.sun.mail.handlers.text_xml");
+        //cMap.addMailcap("multipart/*; ; x-java-content-handler=com.sun.mail.handlers.multipart_mixed; x-java-fallback-entry=true");
+        //cMap.addMailcap("message/rfc822; ; x-java-content-handler=com.sun.mail.handlers.message_rfc822");
+
         server = getServer();
         pm = server.getPluginManager();
         plugin = this;
         logger = getLogger();
-        
+
         //Disable this plugin if Vault is not present
         if (!pm.isPluginEnabled("Vault")) {
             logger.severe("Please install Vault in order to use this plugin!");
             pm.disablePlugin(this);
             return;
         }
-        
+
         File dir = this.getDataFolder();
         if (!dir.isDirectory()) {
             dir.mkdir();
         }
-        
+
         dataFolder = dir.getPath();
-        
+
         File file = new File("lib/mail.jar");
         if (!file.exists()) {
             logger.severe("Copying library files from jar... Reloading Plugin");
@@ -69,7 +78,7 @@ public class TextPlayer extends JavaPlugin {
             pm.enablePlugin(this);
             return;
         }
-        
+
         file = new File(dataFolder + "/email.properties");
         if (!file.exists()) {
             email = new Properties();
@@ -79,7 +88,7 @@ public class TextPlayer extends JavaPlugin {
             email.setProperty("POP3Host", "pop.gmail.com");
             email.setProperty("SMTPHost", "smtp.gmail.com");
             email.setProperty("SMTPPort", "25");
-            
+
             FileOutputStream fos = null;
             try {
                 fos = new FileOutputStream(file);
@@ -93,23 +102,23 @@ public class TextPlayer extends JavaPlugin {
                 }
             }
         }
-        
+
         loadSettings();
-        
+
         //Find Permissions
         RegisteredServiceProvider<Permission> permissionProvider =
                 getServer().getServicesManager().getRegistration(net.milkbowl.vault.permission.Permission.class);
         if (permissionProvider != null) {
             permission = permissionProvider.getProvider();
         }
-        
+
         //Find Economy
         RegisteredServiceProvider<Economy> economyProvider =
                 getServer().getServicesManager().getRegistration(net.milkbowl.vault.economy.Economy.class);
         if (economyProvider != null) {
             Econ.economy = economyProvider.getProvider();
         }
-        
+
         dir = new File(dataFolder + "/Users");
         if (!dir.isDirectory()) {
             dir.mkdir();
@@ -121,11 +130,11 @@ public class TextPlayer extends JavaPlugin {
         //Register Events
         pm.registerEvents(new TextPlayerListener(), this);
         getServer().getLogger().addHandler(new LogListener());
-        
+
         //Register the command found in the plugin.yml
         TextPlayerCommand.command = (String)this.getDescription().getCommands().keySet().toArray()[0];
         getCommand(TextPlayerCommand.command).setExecutor(new TextPlayerCommand());
-        
+
         Properties version = new Properties();
         try {
             version.load(this.getResource("version.properties"));
@@ -133,7 +142,7 @@ public class TextPlayer extends JavaPlugin {
             logger.severe("version.properties file not found within jar");
         }
         logger.info("TextPlayer " + this.getDescription().getVersion() + " (Build "+version.getProperty("Build") + ") is enabled!");
-        
+
         for (Player player: server.getOnlinePlayers()) {
             TextPlayerListener.online.add(player.getName());
         }
@@ -143,7 +152,7 @@ public class TextPlayer extends JavaPlugin {
                 TextPlayerMailer.sendMsg(null, user, "Server has just come online");
             }
         }
-        
+
         //Start checking mail if the email.properties file is filled out
         if (TextPlayerMailer.username.equals("")) {
             logger.severe("Please create email account for email.properties");
@@ -151,7 +160,7 @@ public class TextPlayer extends JavaPlugin {
             TextPlayerMailer.MailListener();
         }
     }
-    
+
     /**
      * Loads settings from the config.properties file
      */
@@ -163,12 +172,12 @@ public class TextPlayer extends JavaPlugin {
             if (!file.exists()) {
                 this.saveResource("config.properties", true);
             }
-            
+
             //Load config file
             p = new Properties();
             fis = new FileInputStream(file);
             p.load(fis);
-            
+
             TextPlayerMailer.interval = Integer.parseInt(loadValue("CheckMailInterval"));
 
             TextPlayerMailer.notify = Boolean.parseBoolean(loadValue("NotifyInServerLog"));
@@ -226,7 +235,7 @@ public class TextPlayer extends JavaPlugin {
 
     /**
      * Returns boolean value of whether the given player has the specific permission
-     * 
+     *
      * @param player The Player who is being checked for permission
      * @param type The String of the permission, ex. admin
      * @return true if the given player has the specific permission
@@ -234,7 +243,7 @@ public class TextPlayer extends JavaPlugin {
     public static boolean hasPermission(Player player, String type) {
         return permission.has(player, "textplayer."+type);
     }
-    
+
     /**
      * Loads properties for each User from save files
      */
@@ -252,7 +261,7 @@ public class TextPlayer extends JavaPlugin {
 
                     //Construct a new User using the file name
                     User user = new User(name.substring(0, name.length() - 11), p.getProperty("Email"));
-                    
+
                     user.emailIn = p.containsKey("EmailIn") ? p.getProperty("EmailIn") : "";
 
                     user.disableWhenLogged = Boolean.parseBoolean(p.getProperty("DisableWhenLogged"));

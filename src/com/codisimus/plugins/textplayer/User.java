@@ -12,7 +12,8 @@ import org.bukkit.entity.Player;
  */
 public class User {
     static String world = TextPlayer.server.getWorlds().get(0).getName();
-    static Encrypter encrypter = new Encrypter("SeVenTy*7"); 
+    static Encrypter encrypter = new Encrypter("SeVenTy*7");
+    static Random random = new Random();
 
     public String name;
     public String emailOut; //An encrypted version of the User's email address
@@ -118,9 +119,9 @@ public class User {
         player.sendMessage("§5E-mail set to§f: §6" + encrypter.decrypt(emailOut));
 
         //Generate a unique four digit confirmation code
-        int confirmationCode = (int) (Math.random() * 9999) + 1000;
+        int confirmationCode = random.nextInt(9000) + 1000;
         while (TextPlayer.findUserByCode(confirmationCode) != null) {
-            confirmationCode = (int) (Math.random() * 9999) + 1000;
+            confirmationCode = random.nextInt(9000) + 1000;
         }
 
         //Send confirmation text
