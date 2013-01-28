@@ -30,7 +30,7 @@ public class TextPlayerListener implements Listener {
         final String logged = event.getPlayer().getName();
 
         //Execute in one minute
-        TextPlayer.server.getScheduler().scheduleAsyncDelayedTask(TextPlayer.plugin, new Runnable() {
+        TextPlayer.server.getScheduler().runTaskLaterAsynchronously(TextPlayer.plugin, new Runnable() {
             @Override
             public void run() {
                 //Return if the Player logged back on
@@ -45,7 +45,7 @@ public class TextPlayerListener implements Listener {
                 for (User user: TextPlayer.getUsers()) {
                     if ((user.players.contains("*") || user.players.contains(logged.toLowerCase()))
                             && !user.name.equals(logged)) {
-                        TextPlayerMailer.sendMsg(null, user, logged + " has logged off");
+                        TextPlayerMailReader.sendMsg(null, user, "TextPlayer Player Watcher", logged + " has logged off");
                     }
                 }
             }
@@ -71,7 +71,7 @@ public class TextPlayerListener implements Listener {
         for (User user: TextPlayer.getUsers()) {
             if ((user.players.contains("*") || user.players.contains(logged.toLowerCase()))
                     && !user.name.equals(logged)) {
-                TextPlayerMailer.sendMsg(null, user, logged + " has logged on");
+                TextPlayerMailReader.sendMsg(null, user, "TextPlayer Player Watcher", logged + " has logged on");
             }
         }
     }
@@ -91,7 +91,7 @@ public class TextPlayerListener implements Listener {
             if (!user.name.equals(player)) {
                 for (String word: user.words) {
                     if (msg.contains(word)) {
-                        TextPlayerMailer.sendMsg(null, user, event.getPlayer().getName() + ": " + msg);
+                        TextPlayerMailReader.sendMsg(null, user, "Someone said " + word, event.getPlayer().getName() + ": " + msg);
                         break;
                     }
                 }
@@ -120,7 +120,7 @@ public class TextPlayerListener implements Listener {
         //Send an alert to each Player watching TNT
         for (User user: TextPlayer.getUsers()) {
             if (user.items.contains("tnt")) {
-                TextPlayerMailer.sendMsg(null, user, player + " has placed TNT");
+                TextPlayerMailReader.sendMsg(null, user, "Possible Griefing", player + " has placed TNT");
             }
         }
     }
@@ -145,7 +145,7 @@ public class TextPlayerListener implements Listener {
         //Send an alert to each Player watching fire
         for (User user: TextPlayer.getUsers()) {
             if (user.items.contains("fire")) {
-                TextPlayerMailer.sendMsg(null, user, player.getName() + " has lit a fire");
+                TextPlayerMailReader.sendMsg(null, user, "Possible Griefing", player.getName() + " has lit a fire");
             }
         }
     }

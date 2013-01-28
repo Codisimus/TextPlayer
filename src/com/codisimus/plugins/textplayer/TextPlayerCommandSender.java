@@ -22,7 +22,7 @@ public class TextPlayerCommandSender implements CommandSender {
 
     @Override
     public void sendMessage(String string) {
-        TextPlayerMailer.sendMsg(null, user, string);
+        TextPlayerMailReader.sendMsg(null, user, "[TextPlayer] Reply for input", string);
     }
 
     @Override

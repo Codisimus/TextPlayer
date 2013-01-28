@@ -36,7 +36,7 @@ public class User {
      *
      * @param name The name of the Player
      */
-    public User (String name) {
+    public User(String name) {
         this.name = name;
         emailOut = "";
     }
@@ -47,7 +47,7 @@ public class User {
      * @param name The name of the Player
      * @param email The encrypted email address
      */
-    public User (String name, String email) {
+    public User(String name, String email) {
         this.name = name;
         this.emailOut = email;
     }
@@ -126,7 +126,7 @@ public class User {
 
         //Send confirmation text
         player.sendMessage("§5Sending Confirmation Text...");
-        TextPlayerMailer.sendMsg(player, this, "[TextPlayer] Reply '"
+        TextPlayerMailReader.sendMsg(player, this, "[TextPlayer] Confirmation Code", "Reply '"
                 + confirmationCode + "' to link this number to " + name);
 
         //Set the User as not verified
@@ -149,8 +149,8 @@ public class User {
      *
      * @param msg The message that will be emailed
      */
-    public void sendText(String msg) {
-        TextPlayerMailer.sendMsg(null, this, msg);
+    public void sendText(String subject, String msg) {
+        TextPlayerMailReader.sendMsg(null, this, subject, msg);
     }
 
     /**

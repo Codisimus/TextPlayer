@@ -87,14 +87,16 @@ public class TextPlayer extends JavaPlugin {
             email.setProperty("PasswordEncrypted", "");
             email.setProperty("POP3Host", "pop.gmail.com");
             email.setProperty("SMTPHost", "smtp.gmail.com");
-            email.setProperty("SMTPPort", "25");
+            email.setProperty("SMTPPort", "587");
+            email.setProperty("IMAPHost", "imap.gmail.com");
+            email.setProperty("IMAPPort", "993");
 
             FileOutputStream fos = null;
             try {
                 fos = new FileOutputStream(file);
                 email.store(fos, null);
             } catch (Exception e) {
-                logger.severe("Unable to create initial email.properties file (It can be found within the jar)");
+                logger.severe("Unable to create initial email.properties file");
             } finally {
                 try {
                     fos.close();
@@ -149,15 +151,15 @@ public class TextPlayer extends JavaPlugin {
 
         for (User user: users.values()) {
             if (user.watchingServer) {
-                TextPlayerMailer.sendMsg(null, user, "Server has just come online");
+                TextPlayerMailReader.sendMsg(null, user, "TextPlayer Server Watcher", "Server has just come online");
             }
         }
 
         //Start checking mail if the email.properties file is filled out
-        if (TextPlayerMailer.username.equals("")) {
+        if (TextPlayerMailReader.username.equals("")) {
             logger.severe("Please create email account for email.properties");
         } else {
-            TextPlayerMailer.MailListener();
+            TextPlayerMailReader.MailListener();
         }
     }
 
@@ -178,28 +180,32 @@ public class TextPlayer extends JavaPlugin {
             fis = new FileInputStream(file);
             p.load(fis);
 
-            TextPlayerMailer.interval = Integer.parseInt(loadValue("CheckMailInterval"));
+            TextPlayerMailReader.interval = Integer.parseInt(loadValue("CheckMailInterval"));
 
-            TextPlayerMailer.notify = Boolean.parseBoolean(loadValue("NotifyInServerLog"));
-            TextPlayerMailer.debug = Boolean.parseBoolean(loadValue("Debug"));
+            TextPlayerMailReader.notify = Boolean.parseBoolean(loadValue("NotifyInServerLog"));
+            TextPlayerMailReader.debug = Boolean.parseBoolean(loadValue("Debug"));
 
             Econ.cost = Integer.parseInt(loadValue("CostToText"));
             Econ.costAdmin = Integer.parseInt(loadValue("CostToTextAnAdmin"));
 
             p.load(new FileInputStream(dataFolder + "/email.properties"));
 
-            TextPlayerMailer.username = loadValue("Username");
+            TextPlayerMailReader.username = loadValue("Username");
             String passToEncrypt = loadValue("Password");
-            TextPlayerMailer.pass = loadValue("PasswordEncrypted");
+            TextPlayerMailReader.pass = loadValue("PasswordEncrypted");
 
-            TextPlayerMailer.pop3host = loadValue("POP3Host");
-            TextPlayerMailer.smtphost = loadValue("SMTPHost");
-            TextPlayerMailer.smtpport = Integer.parseInt(loadValue("SMTPPort"));
+            TextPlayerMailReader.pop3host = loadValue("POP3Host");
+            TextPlayerMailReader.smtphost = loadValue("SMTPHost");
+            TextPlayerMailReader.smtpport = Integer.parseInt(loadValue("SMTPPort"));
+            TextPlayerMailReader.imaphost = loadValue("IMAPHost");
+            TextPlayerMailReader.imapport = Integer.parseInt(loadValue("IMAPPort"));
+            TextPlayerMailReader.imap = !TextPlayerMailReader.imaphost.isEmpty();
+            TextPlayerMailReader.imap = false;
 
             //Encrypt the password if it is not already encrypted
             if (!passToEncrypt.isEmpty()) {
-                TextPlayerMailer.pass = encrypter.encrypt(passToEncrypt);
-                p.setProperty("PasswordEncrypted", TextPlayerMailer.pass);
+                TextPlayerMailReader.pass = encrypter.encrypt(passToEncrypt);
+                p.setProperty("PasswordEncrypted", TextPlayerMailReader.pass);
                 p.setProperty("Password", "");
 
                 //Save the email.properties file with the newly encrypted password
@@ -540,7 +546,7 @@ public class TextPlayer extends JavaPlugin {
     public static void massText(String message) {
         for (User user: TextPlayer.getUsers()) {
             if (!user.massTextOptOut) {
-                TextPlayerMailer.sendMsg(null, user, message);
+                TextPlayerMailReader.sendMsg(null, user, "Mass Text", message);
             }
         }
     }

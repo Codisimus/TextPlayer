@@ -10,9 +10,17 @@ import java.util.logging.LogRecord;
  * @author Codisimus
  */
 public class LogListener extends Handler {
+    static final int ANTI_SPAM_TIMER = 600000;
+    static long antiSpamClock;
+
     @Override
     public void publish(LogRecord record) {
         if (record.getLevel() != Level.SEVERE) {
+            return;
+        }
+
+        long time = System.currentTimeMillis();
+        if (time < antiSpamClock) {
             return;
         }
 
@@ -21,12 +29,13 @@ public class LogListener extends Handler {
             return;
         }
 
-        msg = record.getLoggerName() + " generated an error: " + msg;
         for (User user: TextPlayer.getUsers()) {
             if (user.watchingErrors) {
-                user.sendText(msg);
+                user.sendText(record.getLoggerName() + " generated an error", msg);
             }
         }
+
+        antiSpamClock = time + ANTI_SPAM_TIMER;
     }
 
     @Override

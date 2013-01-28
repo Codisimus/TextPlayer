@@ -19,7 +19,7 @@ public class TextPlayerCommand implements CommandExecutor {
     private static enum WatchType { PLAYER, SERVER, ITEM, WORD, ERRORS }
     private static enum ListType { CARRIERS, USERS, ADMINS, WATCHING }
     private static String permissionMsg = "§4You do not have permission to do that";
-    
+
     /**
      * Listens for ButtonWarp commands to execute them
      *
@@ -96,7 +96,7 @@ public class TextPlayerCommand implements CommandExecutor {
                 msg = msg.concat(" " + args[i]);
             }
 
-            TextPlayerMailer.sendMsg(player, user, msg);
+            TextPlayerMailReader.sendMsg(player, user, "Msg from " + player.getName(), msg);
             return true;
         }
 
@@ -339,7 +339,7 @@ public class TextPlayerCommand implements CommandExecutor {
         case CHECK:
             //Cancel if the Player does not have the needed permission
             if (TextPlayer.hasPermission(player, "check")) {
-                TextPlayerMailer.forceCheck(player);
+                TextPlayerMailReader.forceCheck(player);
             } else {
                 player.sendMessage(permissionMsg);
             }

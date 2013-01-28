@@ -1,6 +1,6 @@
 name: TextPlayer
 main: com.codisimus.plugins.textplayer.TextPlayer
-version: 2.3.0
+version: 2.4.0
 author: Codisimus
 website: www.codisimus.com
 description: Receive text alerts to your phone
@@ -33,6 +33,8 @@ permissions:
     description: Needed to receive a text when an error is logged
   textplayer.listusers:
     description: Needed to list all of the Users who can receive texts (/text list users)
+  textplayer.listadmins:
+    description: Needed to list all of the Admins who can receive texts (/text list admins)
   textplayer.free:
     description: Send messages free of charge (Minecraft money, not real money. Messages never cost real money to send)
   textplayer.check:
