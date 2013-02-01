@@ -1,6 +1,6 @@
 name: TextPlayer
 main: com.codisimus.plugins.textplayer.TextPlayer
-version: 2.4.0
+version: 2.4.1
 author: Codisimus
 website: www.codisimus.com
 description: Receive text alerts to your phone
@@ -39,5 +39,3 @@ permissions:
     description: Send messages free of charge (Minecraft money, not real money. Messages never cost real money to send)
   textplayer.check:
     description: Allows the Player to tell the TextPlayer plugin to check for new mail (/text check)
-  textplayer.admin:
-    description: Distinquishes the Player as an admin. Needed to text commands to the Server

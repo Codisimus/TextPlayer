@@ -24,6 +24,7 @@ public class TextPlayer extends JavaPlugin {
     public static Server server;
     static Encrypter encrypter = new Encrypter("SeVenTy*7");
     static HashMap<String, User> users = new HashMap<String, User>();
+    static HashSet<String> admins = new HashSet<String>();
     static String dataFolder;
     static Plugin plugin;
     static Logger logger;
@@ -36,6 +37,9 @@ public class TextPlayer extends JavaPlugin {
      */
     @Override
     public void onEnable () {
+        //Metrics hook
+        try { new Metrics(this).start(); } catch (IOException e) {}
+
         //System.setProperty("javax.activation.debug", "true");
 
         Thread.currentThread().setContextClassLoader(this.getClass().getClassLoader());
@@ -178,16 +182,6 @@ public class TextPlayer extends JavaPlugin {
             //Load config file
             p = new Properties();
             fis = new FileInputStream(file);
-            p.load(fis);
-
-            TextPlayerMailReader.interval = Integer.parseInt(loadValue("CheckMailInterval"));
-
-            TextPlayerMailReader.notify = Boolean.parseBoolean(loadValue("NotifyInServerLog"));
-            TextPlayerMailReader.debug = Boolean.parseBoolean(loadValue("Debug"));
-
-            Econ.cost = Integer.parseInt(loadValue("CostToText"));
-            Econ.costAdmin = Integer.parseInt(loadValue("CostToTextAnAdmin"));
-
             p.load(new FileInputStream(dataFolder + "/email.properties"));
 
             TextPlayerMailReader.username = loadValue("Username");
@@ -212,7 +206,7 @@ public class TextPlayer extends JavaPlugin {
                 p.store(new FileOutputStream(dataFolder + "/email.properties"), null);
             }
         } catch (Exception missingProp) {
-            logger.severe("Failed to load config settings. This plugin may not function properly");
+            logger.severe("Failed to load email settings. This plugin may not function properly");
             missingProp.printStackTrace();
         } finally {
             try {
@@ -232,9 +226,7 @@ public class TextPlayer extends JavaPlugin {
         if (p.containsKey(key)) {
             return p.getProperty(key);
         } else {
-            logger.severe("Missing value for " + key);
-            logger.severe("Please regenerate the config.properties file");
-            logger.severe("If still getting this error, regenerate the email.properties file");
+            logger.severe("Please regenerate the email.properties file");
             return null;
         }
     }
@@ -247,7 +239,7 @@ public class TextPlayer extends JavaPlugin {
      * @return true if the given player has the specific permission
      */
     public static boolean hasPermission(Player player, String type) {
-        return permission.has(player, "textplayer."+type);
+        return permission.has(player, "textplayer." + type);
     }
 
     /**

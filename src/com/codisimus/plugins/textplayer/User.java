@@ -58,7 +58,7 @@ public class User {
      * @return True if this User is an Admin
      */
     public boolean isAdmin() {
-        return TextPlayer.permission.has(world, name, "textplayer.admin");
+        return TextPlayer.admins.contains(name);
     }
 
     /**

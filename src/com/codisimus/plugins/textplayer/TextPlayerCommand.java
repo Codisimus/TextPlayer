@@ -21,7 +21,7 @@ public class TextPlayerCommand implements CommandExecutor {
     private static String permissionMsg = "§4You do not have permission to do that";
 
     /**
-     * Listens for ButtonWarp commands to execute them
+     * Listens for TextPlayer commands to execute them
      *
      * @param sender The CommandSender who may not be a Player
      * @param command The command that was executed
