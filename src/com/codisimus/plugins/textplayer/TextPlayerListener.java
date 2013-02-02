@@ -1,6 +1,6 @@
 package com.codisimus.plugins.textplayer;
 
-import java.util.LinkedList;
+import java.util.HashSet;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -17,7 +17,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
  * @author Codisimus
  */
 public class TextPlayerListener implements Listener {
-    static LinkedList<String> online = new LinkedList<String>();
+    static HashSet<String> online = new HashSet<String>();
 
     /**
      * Sends alerts when Players log off
@@ -42,10 +42,12 @@ public class TextPlayerListener implements Listener {
                 online.remove(logged);
 
                 //Send an alert to each Player watching the Player who logged
-                for (User user: TextPlayer.getUsers()) {
-                    if ((user.players.contains("*") || user.players.contains(logged.toLowerCase()))
+                for (User user : TextPlayer.getUsers()) {
+                    if (user.chatMode) {
+                        user.sendText("TextPlayer Chat Mode", logged + " has logged off");
+                    } else if ((user.players.contains("*") || user.players.contains(logged.toLowerCase()))
                             && !user.name.equals(logged)) {
-                        TextPlayerMailReader.sendMsg(null, user, "TextPlayer Player Watcher", logged + " has logged off");
+                        user.sendText("TextPlayer Player Watcher", logged + " has logged off");
                     }
                 }
             }
@@ -68,10 +70,12 @@ public class TextPlayerListener implements Listener {
         online.add(logged);
 
         //Send an alert to each Player watching the Player who logged
-        for (User user: TextPlayer.getUsers()) {
-            if ((user.players.contains("*") || user.players.contains(logged.toLowerCase()))
+        for (User user : TextPlayer.getUsers()) {
+            if (user.chatMode) {
+                user.sendText("TextPlayer Chat Mode", logged + " has logged on");
+            } else if ((user.players.contains("*") || user.players.contains(logged.toLowerCase()))
                     && !user.name.equals(logged)) {
-                TextPlayerMailReader.sendMsg(null, user, "TextPlayer Player Watcher", logged + " has logged on");
+                user.sendText("TextPlayer Player Watcher", logged + " has logged on");
             }
         }
     }
@@ -87,11 +91,13 @@ public class TextPlayerListener implements Listener {
         String player = event.getPlayer().getName();
 
         //Send an alert to each Player that is watching a word that was spoken
-        for (User user: TextPlayer.getUsers()) {
-            if (!user.name.equals(player)) {
-                for (String word: user.words) {
+        for (User user : TextPlayer.getUsers()) {
+            if (user.chatMode) {
+                user.sendText("TextPlayer Chat Mode [" + player + "]", player + ": " + msg);
+            } else if (!user.name.equals(player)) {
+                for (String word : user.words) {
                     if (msg.contains(word)) {
-                        TextPlayerMailReader.sendMsg(null, user, "Someone said " + word, event.getPlayer().getName() + ": " + msg);
+                        user.sendText("Someone said " + word, player + ": " + msg);
                         break;
                     }
                 }
@@ -120,7 +126,7 @@ public class TextPlayerListener implements Listener {
         //Send an alert to each Player watching TNT
         for (User user: TextPlayer.getUsers()) {
             if (user.items.contains("tnt")) {
-                TextPlayerMailReader.sendMsg(null, user, "Possible Griefing", player + " has placed TNT");
+                user.sendText("Possible Griefing", player + " has placed TNT");
             }
         }
     }
@@ -145,7 +151,7 @@ public class TextPlayerListener implements Listener {
         //Send an alert to each Player watching fire
         for (User user: TextPlayer.getUsers()) {
             if (user.items.contains("fire")) {
-                TextPlayerMailReader.sendMsg(null, user, "Possible Griefing", player.getName() + " has lit a fire");
+                user.sendText("Possible Griefing", player.getName() + " has lit a fire");
             }
         }
     }

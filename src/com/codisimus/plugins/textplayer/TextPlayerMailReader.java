@@ -28,7 +28,7 @@ import sun.misc.BASE64Decoder;
  */
 public class TextPlayerMailReader implements MessageCountListener {
     public static enum Action {
-        DISABLE, PL, PLAYERLIST, PLAYERS, WHO, FIND, TELL, TEXT, SAY
+        DISABLE, PL, PLAYERLIST, PLAYERS, WHO, FIND, TELL, TEXT, SAY, CHATMODE
     }
     public static boolean debug;
     public static boolean notify;
@@ -59,6 +59,7 @@ public class TextPlayerMailReader implements MessageCountListener {
     private static final String FAILED = "Sending Failed";
     private static final String CONNECTION_ERROR = "Could not connect to email account, check settings in email.properties";
     private static final String TEXTPLAYER_TAG = "[TextPlayer] ";
+    private static final String CHAT_MODE = "(Chat Mode) ";
     private static final String MULTIPART_TYPE = "multipart/*";
     private static final String TEXT_TYPE = "text/plain";
     private static final String HTML_TYPE = "text/html";
@@ -194,7 +195,7 @@ public class TextPlayerMailReader implements MessageCountListener {
                                 user.sendText(TEXTPLAYER_TAG + "msg not sent!", player.getName() + " is currently offline");
                             }
                             else {
-                                player.sendMessage("§5Text from §6" + user.name+"§f: §2"
+                                player.sendMessage("§5Text from §6" + user.name + "§f: §2"
                                         + msg.substring(split[0].length() + split[1].length() + 1));
                             }
 
@@ -217,10 +218,18 @@ public class TextPlayerMailReader implements MessageCountListener {
                                     + user.name + ChatColor.WHITE + msg.substring(3));
                             break;
 
+                        case CHATMODE: //Toggle Chat Mode
+                            user.chatMode = !user.chatMode;
+                            user.sendText("TextPlayer Chat Mode", "Chat Mode has been " + (user.chatMode ? "enabled" : "disabled"));
+                            break;
+
                         default: break;
                         }
                     } catch (Exception e) {
-                        if (user.isAdmin()) {
+                        if (user.chatMode) {
+                            TextPlayer.server.broadcastMessage(ChatColor.DARK_PURPLE + TEXTPLAYER_TAG
+                                    + CHAT_MODE + user.name + ChatColor.WHITE + msg.substring(3));
+                        } else if (user.isAdmin()) {
                             if (split[0].equals("rl")) {
                                 //Delete the Message after reading it
                                 message.setFlag(Flag.DELETED, true);
@@ -373,7 +382,7 @@ public class TextPlayerMailReader implements MessageCountListener {
         }
 
         //Eliminate white space before the first word
-        while (msg.startsWith(" ") || msg.startsWith("/") || msg.startsWith("\n")) {
+        while (msg.startsWith(" ") || msg.startsWith("\n")) {
             msg = msg.substring(msg.startsWith("\n") ? 2 : 1);
         }
 

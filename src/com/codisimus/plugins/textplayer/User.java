@@ -31,6 +31,8 @@ public class User {
     public LinkedList<String> items = new LinkedList<String>();
     public LinkedList<String> words = new LinkedList<String>();
 
+    public boolean chatMode = false;
+
     /**
      * Constructs a new User with the given name
      *
