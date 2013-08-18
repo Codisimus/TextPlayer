@@ -72,7 +72,7 @@ public class SMSGateways {
         case rogers: return number+"@pcs.rogers.com";
         case sfr: return number+"@sfr.fr";
         case softbank: return number+"@softbank.ne.jp";
-        case sprint: return number+"@messaging.sprintpcs.com";
+        case sprint: return number+"@pm.sprint.com";
         case starhub: return number+"@starhub-enterprisemessaing.com";
         case sunrise: return number+"@mysunrise.ch";
         case swisscom: return number+"@bluewin.ch";
