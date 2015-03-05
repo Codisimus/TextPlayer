@@ -10,7 +10,7 @@ import java.util.logging.LogRecord;
  * @author Codisimus
  */
 public class LogListener extends Handler {
-    static final int ANTI_SPAM_TIMER = 600000;
+    static final int ANTI_SPAM_TIMER = 60 * 1000;
     static long antiSpamClock;
 
     @Override

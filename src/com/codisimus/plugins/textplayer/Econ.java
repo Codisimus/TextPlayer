@@ -1,7 +1,9 @@
 package com.codisimus.plugins.textplayer;
 
 import net.milkbowl.vault.economy.Economy;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.RegisteredServiceProvider;
 
 /**
  * Manages payment/rewards of using Warps
@@ -26,7 +28,7 @@ public class Econ {
         String playerName = player.getName();
 
         //Charge if the price is not 0 and the Player does not have the 'textplayer.free' node
-        if (cost > 0 && !TextPlayer.hasPermission(player, "free")) {
+        if (cost > 0 && !player.hasPermission("textplayer.free")) {
             //Return false if the Player has insufficient funds
             if (!economy.has(playerName, price)) {
                 player.sendMessage("§4You need §6" + format(price) + " §4to message that user");
@@ -48,5 +50,23 @@ public class Econ {
      */
     public static String format(double amount) {
         return economy.format(amount).replace(".00", "");
+    }
+
+    /**
+     * Retrieves the registered Economy plugin
+     *
+     * @return true if an Economy plugin has been found
+     */
+    public static boolean setupEconomy() {
+        //Return if Vault is not enabled
+        if (Bukkit.getPluginManager().getPlugin("Vault") == null) {
+            return false;
+        }
+        RegisteredServiceProvider rsp = Bukkit.getServicesManager().getRegistration(Economy.class);
+        if (rsp == null) {
+            return false;
+        }
+        economy = (Economy) rsp.getProvider();
+        return economy != null;
     }
 }

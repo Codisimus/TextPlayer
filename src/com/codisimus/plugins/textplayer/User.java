@@ -11,7 +11,6 @@ import org.bukkit.entity.Player;
  * @author Codisimus
  */
 public class User {
-    static String world = TextPlayer.server.getWorlds().get(0).getName();
     static Encrypter encrypter = new Encrypter("SeVenTy*7");
     static Random random = new Random();
 
@@ -19,17 +18,17 @@ public class User {
     public String emailOut; //An encrypted version of the User's email address
     public String emailIn = "";
     public boolean disableWhenLogged = true; //If true, texts will only be sent when the Player is offline
-    public boolean massTextOptOut = false; //If true, texts will only be sent when the Player is offline
+    public boolean massTextOptOut = false; //If true, mass text will not be sent to the Player
     public int textLimit = -1;
     public int textsSent = 0;
     public int lastText = 0; //The day that the last text was sent to this User
-    public LinkedList<String> whiteList = new LinkedList<String>();
+    public final LinkedList<String> whiteList = new LinkedList<>();
 
     public boolean watchingServer = false;
     public boolean watchingErrors = false;
-    public LinkedList<String> players = new LinkedList<String>();
-    public LinkedList<String> items = new LinkedList<String>();
-    public LinkedList<String> words = new LinkedList<String>();
+    public final LinkedList<String> players = new LinkedList<>();
+    public final LinkedList<String> items = new LinkedList<>();
+    public final LinkedList<String> words = new LinkedList<>();
 
     public boolean chatMode = false;
 
@@ -66,9 +65,9 @@ public class User {
     /**
      * Formats the given information into a valid email address
      *
-     * @param carrier The cell phone carrier or 'email'
+     * @param player The Player to send messages to
+     * @param carrierName The cell phone carrier or 'email'
      * @param address The phone number or email address
-     * @return The message that will be sent to the Player
      */
     public void setEmail(Player player, String carrierName, String address) {
         String old = emailOut;
@@ -88,8 +87,8 @@ public class User {
                 carrier = Carrier.valueOf(carrierName.toLowerCase());
             } catch (IllegalArgumentException notSupported) {
                 player.sendMessage("§4Carrier §6" + carrierName
-                        + " §4not supported, type §2/" + TextPlayerCommand.command
-                        + " list carriers§f for a list of supported Carriers");
+                        + " §4not supported, type §2/text list carriers"
+                        + "§f for a list of supported Carriers");
                 return;
             }
 
@@ -149,6 +148,7 @@ public class User {
     /**
      * Sends a text message (email) to the User
      *
+     * @param subject The subject of the message
      * @param msg The message that will be emailed
      */
     public void sendText(String subject, String msg) {

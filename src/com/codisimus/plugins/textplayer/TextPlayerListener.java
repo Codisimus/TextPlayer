@@ -1,6 +1,8 @@
 package com.codisimus.plugins.textplayer;
 
 import java.util.HashSet;
+import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -10,6 +12,7 @@ import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.scheduler.BukkitRunnable;
 
 /**
  * Listens for logging and speaking events to alert Users
@@ -17,7 +20,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
  * @author Codisimus
  */
 public class TextPlayerListener implements Listener {
-    static HashSet<String> online = new HashSet<String>();
+    static final HashSet<String> online = new HashSet<>();
 
     /**
      * Sends alerts when Players log off
@@ -30,11 +33,11 @@ public class TextPlayerListener implements Listener {
         final String logged = event.getPlayer().getName();
 
         //Execute in one minute
-        TextPlayer.server.getScheduler().runTaskLaterAsynchronously(TextPlayer.plugin, new Runnable() {
+        new BukkitRunnable() {
             @Override
             public void run() {
                 //Return if the Player logged back on
-                if (TextPlayer.server.getPlayer(logged) != null) {
+                if (Bukkit.getPlayerExact(logged) != null) {
                     return;
                 }
 
@@ -51,7 +54,7 @@ public class TextPlayerListener implements Listener {
                     }
                 }
             }
-        }, 1200L);
+        }.runTaskLater(TextPlayer.plugin, 60 * 60 * 20L);
     }
 
     /**
@@ -117,14 +120,14 @@ public class TextPlayerListener implements Listener {
         }
 
         //Cancel if the event was not placing TNT
-        if (event.getBlock().getTypeId() != 46) {
+        if (event.getBlock().getType() != Material.TNT) {
             return;
         }
 
         String player = event.getPlayer().getName();
 
         //Send an alert to each Player watching TNT
-        for (User user: TextPlayer.getUsers()) {
+        for (User user : TextPlayer.getUsers()) {
             if (user.items.contains("tnt")) {
                 user.sendText("Possible Griefing", player + " has placed TNT");
             }
@@ -149,7 +152,7 @@ public class TextPlayerListener implements Listener {
         }
 
         //Send an alert to each Player watching fire
-        for (User user: TextPlayer.getUsers()) {
+        for (User user : TextPlayer.getUsers()) {
             if (user.items.contains("fire")) {
                 user.sendText("Possible Griefing", player.getName() + " has lit a fire");
             }

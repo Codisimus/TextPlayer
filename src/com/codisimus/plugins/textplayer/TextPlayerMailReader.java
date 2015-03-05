@@ -1,25 +1,39 @@
 package com.codisimus.plugins.textplayer;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.io.StringWriter;
+import java.io.Writer;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Properties;
 import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.activation.DataSource;
-import javax.activation.FileDataSource;
-import javax.mail.*;
 import javax.mail.Flags.Flag;
+import javax.mail.Folder;
+import javax.mail.Message;
+import javax.mail.Multipart;
+import javax.mail.Part;
+import javax.mail.PasswordAuthentication;
+import javax.mail.Session;
+import javax.mail.Store;
+import javax.mail.Transport;
 import javax.mail.event.MessageCountEvent;
 import javax.mail.event.MessageCountListener;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 import javax.mail.util.ByteArrayDataSource;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 import sun.misc.BASE64Decoder;
+
 
 /**
  * Sends and receives emails for the TextPlayer Plugin
@@ -27,9 +41,6 @@ import sun.misc.BASE64Decoder;
  * @author Codisimus
  */
 public class TextPlayerMailReader implements MessageCountListener {
-    public static enum Action {
-        DISABLE, PL, PLAYERLIST, PLAYERS, WHO, FIND, TELL, TEXT, SAY, CHATMODE
-    }
     public static boolean debug;
     public static boolean notify;
     public static String smtphost;
@@ -81,7 +92,7 @@ public class TextPlayerMailReader implements MessageCountListener {
         try {
             //Log in to the email account and retrieve the inbox
             if (!store.isConnected()) {
-                store.connect(username, TextPlayer.encrypter.decrypt(pass));
+                store.connect(username, User.encrypter.decrypt(pass));
                 if (!store.isConnected()) {
                     TextPlayer.logger.severe(CONNECTION_ERROR);
                     cancelMailListener();
@@ -139,7 +150,7 @@ public class TextPlayerMailReader implements MessageCountListener {
                             return;
                         }
 
-                        user.emailIn = TextPlayer.encrypter.encrypt(address);
+                        user.emailIn = User.encrypter.encrypt(address);
                         user.textLimit = 0;
                         user.save();
                         user.sendText(TEXTPLAYER_TAG + "Successfully Linked!", "Number/Email linked to " + user.name);
@@ -160,39 +171,44 @@ public class TextPlayerMailReader implements MessageCountListener {
                     }
 
                     try {
-                        Action action = Action.valueOf(split[0].toUpperCase());
-                        switch (action) {
-                        case DISABLE: //Set the User as not verified
+                        switch (split[0].toLowerCase()) {
+                        case "disable": //Set the User as not verified
                             user.sendText(TEXTPLAYER_TAG + "disabled", "Messages to this address have been disabled");
-                            Thread.sleep(5000);
-                            user.emailOut = "";
-                            user.emailIn = "";
-                            user.save();
+                            final User u = user;
+                            new BukkitRunnable() {
+                                @Override
+                                public void run() {
+                                    u.emailOut = "";
+                                    u.emailIn = "";
+                                    u.save();
+                                }
+                            };
                             break;
 
-                        case PL: //Fall through
-                        case PLAYERS: //Fall through
-                        case WHO: //Fall through
-                        case PLAYERLIST: //Construct a Player count/list to send
-                            String subject = "Player Count: " + TextPlayer.server.getOnlinePlayers().length;
+                        case "pl": //Fall through
+                        case "players": //Fall through
+                        case "who": //Fall through
+                        case "playerlist": //Construct a Player count/list to send
+                            String subject = "Player Count: " + Bukkit.getOnlinePlayers().size();
                             String list = "";
-                            for (Player player : TextPlayer.server.getOnlinePlayers()) {
+                            for (Player player : Bukkit.getOnlinePlayers()) {
                                 list = list.concat(", " + player.getName());
                             }
 
                             user.sendText(subject, list);
                             break;
 
-                        case FIND: //Find if a Player is online
-                            Player foundPlayer = TextPlayer.server.getPlayer(split[1].trim());
+                        case "find": //Find if a Player is online
+                            Player foundPlayer = Bukkit.getPlayer(split[1].trim());
                             String status = foundPlayer == null ? "online" : "offline";
-                            user.sendText(TEXTPLAYER_TAG + "reply for input", foundPlayer.getName() + " is currently " + status);
+                            String playerName = foundPlayer == null ? split[1].trim() : foundPlayer.getName();
+                            user.sendText(TEXTPLAYER_TAG + "reply for input", playerName + " is currently " + status);
                             break;
 
-                        case TELL: //Whisper a message to a Player
-                            Player player = TextPlayer.server.getPlayer(split[1]);
+                        case "tell": //Whisper a message to a Player
+                            Player player = Bukkit.getPlayer(split[1]);
                             if (player == null) {
-                                user.sendText(TEXTPLAYER_TAG + "msg not sent!", player.getName() + " is currently offline");
+                                user.sendText(TEXTPLAYER_TAG + "msg not sent!", split[1] + " is currently offline");
                             }
                             else {
                                 player.sendMessage("§5Text from §6" + user.name + "§f: §2"
@@ -201,7 +217,7 @@ public class TextPlayerMailReader implements MessageCountListener {
 
                             break;
 
-                        case TEXT: //Send a message to a User
+                        case "text": //Send a message to a User
                             User user2 = TextPlayer.findUser(split[1]);
                             if (user2 == null) {
                                 user.sendText(TEXTPLAYER_TAG + "msg not sent!", split[1] + " does not have a TextPlayer account");
@@ -213,21 +229,22 @@ public class TextPlayerMailReader implements MessageCountListener {
 
                             break;
 
-                        case SAY: //Broadcast a message
-                            TextPlayer.server.broadcastMessage(ChatColor.DARK_PURPLE + TEXTPLAYER_TAG
+                        case "say": //Broadcast a message
+                            Bukkit.broadcastMessage(ChatColor.DARK_PURPLE + TEXTPLAYER_TAG
                                     + user.name + ChatColor.WHITE + msg.substring(3));
                             break;
 
-                        case CHATMODE: //Toggle Chat Mode
+                        case "chatmode": //Toggle Chat Mode
                             user.chatMode = !user.chatMode;
                             user.sendText("TextPlayer Chat Mode", "Chat Mode has been " + (user.chatMode ? "enabled" : "disabled"));
                             break;
 
-                        default: break;
+                        default:
+                            break;
                         }
                     } catch (Exception e) {
                         if (user.chatMode) {
-                            TextPlayer.server.broadcastMessage(ChatColor.DARK_PURPLE + TEXTPLAYER_TAG
+                            Bukkit.broadcastMessage(ChatColor.DARK_PURPLE + TEXTPLAYER_TAG
                                     + CHAT_MODE + user.name + ChatColor.WHITE + msg.substring(3));
                         } else if (user.isAdmin()) {
                             if (split[0].equals("rl")) {
@@ -238,10 +255,10 @@ public class TextPlayerMailReader implements MessageCountListener {
                                 store.close();
 
                                 //Reload Server
-                                TextPlayer.server.dispatchCommand(new TextPlayerCommandSender(user), msg);
+                                Bukkit.dispatchCommand(new TextPlayerCommandSender(user), msg);
                                 return;
                             } else {
-                                TextPlayer.server.dispatchCommand(new TextPlayerCommandSender(user), msg);
+                                Bukkit.dispatchCommand(new TextPlayerCommandSender(user), msg);
                             }
                         } else {
                             user.sendText("Permission denied!", "You must be an Admin to do that");
@@ -270,7 +287,7 @@ public class TextPlayerMailReader implements MessageCountListener {
      */
     private static String getMsg(Message message) throws Exception {
         HashMap<String, InputStream> parts = findMimeTypes(message);
-        InputStream is = null;
+        InputStream is;
         if (parts.containsKey(TEXT_TYPE)) {
             is = parts.get(TEXT_TYPE);
         } else if (parts.containsKey(HTML_TYPE)) {
@@ -287,13 +304,13 @@ public class TextPlayerMailReader implements MessageCountListener {
     }
 
     private static HashMap<String, InputStream> findMimeTypes(Part p) {
-        HashMap<String, InputStream> parts = new HashMap<String, InputStream>();
+        HashMap<String, InputStream> parts = new HashMap<>();
         findMimeTypesHelper(p, parts);
         return parts;
     }
 
     private static HashMap<String, InputStream> findMimeTypes(Multipart mp) {
-        HashMap<String, InputStream> parts = new HashMap<String, InputStream>();
+        HashMap<String, InputStream> parts = new HashMap<>();
         try {
             for (int i = 0; i < mp.getCount(); i++) {
                 findMimeTypesHelper(mp.getBodyPart(i), parts);
@@ -417,17 +434,19 @@ public class TextPlayerMailReader implements MessageCountListener {
 
         //Verify the Username and Password
         session = Session.getInstance(props,
-        new javax.mail.Authenticator() {
-            protected PasswordAuthentication getPasswordAuthentication() {
-                return new PasswordAuthentication(username, TextPlayer.encrypter.decrypt(pass));
+            new javax.mail.Authenticator() {
+                @Override
+                protected PasswordAuthentication getPasswordAuthentication() {
+                    return new PasswordAuthentication(username, User.encrypter.decrypt(pass));
+                }
             }
-        });
+        );
 
         //session.setDebug(debug);
         try {
             store = session.getStore(imap ? "imap" : "pop3");
             if (imap) {
-                store.connect(username, TextPlayer.encrypter.decrypt(pass));
+                store.connect(username, User.encrypter.decrypt(pass));
                 if (!store.isConnected()) {
                     TextPlayer.logger.severe(CONNECTION_ERROR);
                     cancelMailListener();
@@ -447,14 +466,14 @@ public class TextPlayerMailReader implements MessageCountListener {
             if (interval == 0) {
                 TextPlayer.logger.info("Only checking for new mail on command '/text check'");
             } else {
-                mailChecker = TextPlayer.server.getScheduler().runTaskTimerAsynchronously(TextPlayer.plugin, new Runnable() {
+                mailChecker = new BukkitRunnable() {
                     @Override
                     public void run() {
                         if (!processing) {
                             checkMail();
                         }
                     }
-                }, 0L, 20L * interval);
+                }.runTaskTimerAsynchronously(TextPlayer.plugin, 0L, 20L * interval);
 
                 TextPlayer.logger.info("Checking for new mail every " + interval + " seconds");
             }
@@ -463,29 +482,31 @@ public class TextPlayerMailReader implements MessageCountListener {
 
     /**
      * Checks for new email
+     *
+     * @param sender The CommandSender to send messages to which may be null
      */
-    public static void forceCheck(final Player player) {
-        TextPlayer.server.getScheduler().runTaskAsynchronously(TextPlayer.plugin, new Runnable() {
+    public static void forceCheck(final CommandSender sender) {
+        new BukkitRunnable() {
             @Override
             public void run() {
                 if (processing) {
-                    if (player != null) {
-                        player.sendMessage("§4Mail check is already in progress.");
+                    if (sender != null) {
+                        sender.sendMessage("§4Mail check is already in progress.");
                     }
                     return;
                 }
 
-                if (player != null) {
-                    player.sendMessage("§5Checking for new mail...");
+                if (sender != null) {
+                    sender.sendMessage("§5Checking for new mail...");
                 }
 
                 checkMail();
 
-                if (player != null) {
-                    player.sendMessage("§5Finished checking for new mail.");
+                if (sender != null) {
+                    sender.sendMessage("§5Finished checking for new mail.");
                 }
             }
-        });
+        }.runTaskAsynchronously(TextPlayer.plugin);
     }
 
     private static void cancelMailListener() {
@@ -507,7 +528,7 @@ public class TextPlayerMailReader implements MessageCountListener {
 
     public static void sendMsg(final Player player, final User user, final String subject, final String body) {
         //Start a new Thread
-        TextPlayer.server.getScheduler().runTaskAsynchronously(TextPlayer.plugin, new Runnable() {
+        new BukkitRunnable() {
             @Override
             public void run() {
                 //Notify the Server log if set to in the config
@@ -570,7 +591,7 @@ public class TextPlayerMailReader implements MessageCountListener {
                 //Check if the User has a text limit
                 if (user.textLimit > 0) {
                     //Reset the amount of texts sent if the last text was sent on a previous day
-                    int day = Calendar.getInstance().DAY_OF_YEAR;
+                    int day = Calendar.getInstance().get(Calendar.DAY_OF_YEAR);
                     if (user.lastText != day) {
                         user.lastText = day;
                         user.textsSent = 0;
@@ -613,11 +634,13 @@ public class TextPlayerMailReader implements MessageCountListener {
 
                 //Verify the Username and Password
                 Session session = Session.getInstance(props,
-                new javax.mail.Authenticator() {
-                    protected PasswordAuthentication getPasswordAuthentication() {
-                        return new PasswordAuthentication(username, TextPlayer.encrypter.decrypt(pass));
+                    new javax.mail.Authenticator() {
+                        @Override
+                        protected PasswordAuthentication getPasswordAuthentication() {
+                            return new PasswordAuthentication(username, User.encrypter.decrypt(pass));
+                        }
                     }
-                });
+                );
 
                 session.setDebug(debug);
 
@@ -625,13 +648,13 @@ public class TextPlayerMailReader implements MessageCountListener {
                     Message message = new MimeMessage(session);
                     message.setFrom(new InternetAddress(username));
                     message.setRecipients(Message.RecipientType.TO,
-                            InternetAddress.parse(TextPlayer.encrypter.decrypt(user.emailOut)));
+                            InternetAddress.parse(User.encrypter.decrypt(user.emailOut)));
                     message.setSubject(subject);
                     message.setText(msg);
-//                    Transport.send(message);
+                    //Transport.send(message);
 
                     Transport transport = session.getTransport("smtp");
-                    transport.connect(smtphost, smtpport, username, TextPlayer.encrypter.decrypt(pass));
+                    transport.connect(smtphost, smtpport, username, User.encrypter.decrypt(pass));
                     transport.sendMessage(message, message.getAllRecipients());
 
                     //Notify the Server log if set to in the config
@@ -657,6 +680,6 @@ public class TextPlayerMailReader implements MessageCountListener {
                     sendFailed.printStackTrace();
                 }
             }
-        });
+        }.runTaskAsynchronously(TextPlayer.plugin);
     }
 }

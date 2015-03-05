@@ -1,6 +1,7 @@
 package com.codisimus.plugins.textplayer;
 
 import java.util.Set;
+import org.bukkit.Bukkit;
 import org.bukkit.Server;
 import org.bukkit.command.CommandSender;
 import org.bukkit.permissions.Permission;
@@ -34,7 +35,7 @@ public class TextPlayerCommandSender implements CommandSender {
 
     @Override
     public Server getServer() {
-        return TextPlayer.server;
+        return Bukkit.getServer();
     }
 
     @Override

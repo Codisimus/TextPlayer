@@ -7,8 +7,8 @@ import javax.mail.PasswordAuthentication;
  * Authenticates the Username and Password of an email account
  */
 public class EmailAuthenticator extends Authenticator {
-    private String user;
-    private String pw;
+    private final String user;
+    private final String pw;
 
     /**
      * Constructs a new Authenticator with the given Username and Password
